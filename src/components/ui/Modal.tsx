@@ -50,7 +50,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           </button>
         </div>
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto scroll-area">{children}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-area">{children}</div>
       </div>
     </div>
   );

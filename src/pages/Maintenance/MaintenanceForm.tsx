@@ -317,26 +317,24 @@ export default function MaintenanceForm({
           </div>
 
           {/* Next due */}
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Next Due (km)" hint="Optional">
-              <Input
-                type="number"
-                value={form.nextDueKm}
-                onChange={(e) =>
-                  set('nextDueKm', e.target.value === '' ? '' : Number(e.target.value))
-                }
-                placeholder="216000"
-                min={0}
-              />
-            </FormField>
-            <FormField label="Next Due (date)" hint="Optional">
-              <Input
-                type="date"
-                value={form.nextDueDate}
-                onChange={(e) => set('nextDueDate', e.target.value)}
-              />
-            </FormField>
-          </div>
+          <FormField label="Next Due (km)" hint="Optional">
+            <Input
+              type="number"
+              value={form.nextDueKm}
+              onChange={(e) =>
+                set('nextDueKm', e.target.value === '' ? '' : Number(e.target.value))
+              }
+              placeholder="216000"
+              min={0}
+            />
+          </FormField>
+          <FormField label="Next Due (date)" hint="Optional">
+            <Input
+              type="date"
+              value={form.nextDueDate}
+              onChange={(e) => set('nextDueDate', e.target.value)}
+            />
+          </FormField>
 
           <FormField label="Notes">
             <Textarea

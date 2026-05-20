@@ -1,8 +1,11 @@
+import { ChevronRight } from 'lucide-react';
+
 interface StatCardProps {
   label: string;
   value: string;
   subValue?: string;
   accent?: 'blue' | 'green' | 'red' | 'orange';
+  onClick?: () => void;
 }
 
 const ACCENT_CLS = {
@@ -12,9 +15,15 @@ const ACCENT_CLS = {
   orange: 'text-ios-orange',
 };
 
-export default function StatCard({ label, value, subValue, accent = 'blue' }: StatCardProps) {
+export default function StatCard({ label, value, subValue, accent = 'blue', onClick }: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-ios-dark-card rounded-2xl p-4 shadow-ios">
+    <div
+      onClick={onClick}
+      className={`relative bg-white dark:bg-ios-dark-card rounded-2xl p-4 shadow-ios ${onClick ? 'cursor-pointer active:opacity-75' : ''}`}
+    >
+      {onClick && (
+        <ChevronRight size={12} className="absolute top-3.5 right-3 text-gray-300 dark:text-zinc-600" />
+      )}
       <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide mb-1">
         {label}
       </p>

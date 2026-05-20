@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -30,7 +30,10 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
+import Modal from '../components/ui/Modal';
 import { BarChart2 } from 'lucide-react';
+
+type BreakdownType = 'maintenance' | 'fuel' | 'economy' | 'total';
 
 export default function ReportsPage() {
   const { vehicle } = useVehicle();
@@ -68,6 +71,62 @@ export default function ReportsPage() {
     }));
   }, [maintenance, fuel]);
 
+  const [breakdownType, setBreakdownType] = useState<BreakdownType | null>(null);
+
+  const breakdownData = useMemo(() => {
+    if (!breakdownType) return null;
+
+    const fmtMonth = (key: string): string => {
+      const [y, m] = key.split('-');
+      return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-CA', {
+        month: 'long',
+        year: 'numeric',
+      });
+    };
+
+    if (breakdownType === 'maintenance') {
+      return {
+        title: 'Maintenance by Month',
+        rows: getMonthlyMaintenanceSpend(maintenance)
+          .reverse()
+          .map((m) => ({ label: fmtMonth(m.month), value: formatCurrency(m.spend) })),
+      };
+    }
+    if (breakdownType === 'fuel') {
+      return {
+        title: 'Fuel Spend by Month',
+        rows: getMonthlyFuelSpend(fuel)
+          .reverse()
+          .map((m) => ({ label: fmtMonth(m.month), value: formatCurrency(m.spend) })),
+      };
+    }
+    if (breakdownType === 'economy') {
+      return {
+        title: 'Fuel Economy by Month',
+        rows: getFuelEconomyByMonth(fuel)
+          .reverse()
+          .map((m) => ({ label: fmtMonth(m.month), value: `${m.lPer100km.toFixed(1)} L/100km` })),
+      };
+    }
+    // total
+    const mMap: Record<string, number> = Object.fromEntries(
+      getMonthlyMaintenanceSpend(maintenance).map((m) => [m.month, m.spend]),
+    );
+    const fMap: Record<string, number> = Object.fromEntries(
+      getMonthlyFuelSpend(fuel).map((f) => [f.month, f.spend]),
+    );
+    const months = [...new Set([...Object.keys(mMap), ...Object.keys(fMap)])].sort((a, b) =>
+      b.localeCompare(a),
+    );
+    return {
+      title: 'Total Spend by Month',
+      rows: months.map((month) => ({
+        label: fmtMonth(month),
+        value: formatCurrency((mMap[month] ?? 0) + (fMap[month] ?? 0)),
+      })),
+    };
+  }, [breakdownType, maintenance, fuel]);
+
   const textColor = dark ? '#98989F' : '#6C6C70';
   const gridColor = dark ? '#3A3A3C' : '#E5E5EA';
   const tooltipBg = dark ? '#1C1C1E' : '#fff';
@@ -102,18 +161,32 @@ export default function ReportsPage() {
       <div className="flex-1 overflow-y-auto scroll-area px-4 pb-6 space-y-5">
         {/* Summary stats */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Maintenance" value={formatCurrency(totalMaint)} subValue="all time" accent="blue" />
-          <StatCard label="Fuel" value={formatCurrency(totalFuel)} subValue="all time" accent="green" />
+          <StatCard
+            label="Maintenance"
+            value={formatCurrency(totalMaint)}
+            subValue="all time"
+            accent="blue"
+            onClick={() => setBreakdownType('maintenance')}
+          />
+          <StatCard
+            label="Fuel"
+            value={formatCurrency(totalFuel)}
+            subValue="all time"
+            accent="green"
+            onClick={() => setBreakdownType('fuel')}
+          />
           <StatCard
             label="Avg Economy"
             value={avgEconomy != null ? `${avgEconomy.toFixed(1)} L/100` : '—'}
             accent="blue"
+            onClick={() => setBreakdownType('economy')}
           />
           <StatCard
             label="Total Spent"
             value={formatCurrency(totalMaint + totalFuel)}
             subValue="maintenance + fuel"
             accent="orange"
+            onClick={() => setBreakdownType('total')}
           />
         </div>
 
@@ -237,6 +310,34 @@ export default function ReportsPage() {
           </Card>
         )}
       </div>
+
+      {/* Monthly breakdown modal */}
+      {breakdownData && (
+        <Modal
+          isOpen={breakdownType !== null}
+          onClose={() => setBreakdownType(null)}
+          title={breakdownData.title}
+        >
+          <div className="px-5 py-2 pb-6">
+            {breakdownData.rows.length === 0 ? (
+              <p className="text-sm text-ios-gray dark:text-gray-400 text-center py-10">
+                No data yet
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+                {breakdownData.rows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between py-3">
+                    <span className="text-[15px] text-black dark:text-white">{row.label}</span>
+                    <span className="text-[15px] font-semibold text-black dark:text-white">
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
