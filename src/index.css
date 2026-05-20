@@ -16,12 +16,12 @@
 
 html {
   height: 100%;
-  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
   height: 100%;
-  overflow: hidden;
+  overscroll-behavior: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   background-color: #F2F2F7;
@@ -39,8 +39,6 @@ html.dark body {
 
 #root {
   height: 100%;
-  height: 100dvh; /* override: use dynamic viewport height so fixed descendants reach the physical screen edge */
-  overflow: hidden;
 }
 
 /* Smooth momentum scrolling on iOS */

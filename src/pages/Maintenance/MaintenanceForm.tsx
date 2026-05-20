@@ -1,14 +1,57 @@
 import { useState, useEffect } from 'react';
+import { formatInputDate } from '../../utils/formatters';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
-import { FormField, Input, Select, Textarea } from '../../components/ui/FormField';
+import { FormField, Input, Textarea } from '../../components/ui/FormField';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import {
-  CATEGORY_LIST,
   type MaintenanceRecord,
   type MaintenanceCategory,
 } from '../../models';
-import { formatInputDate } from '../../utils/formatters';
+
+interface ServicePreset {
+  label: string;
+  title: string;
+  category: MaintenanceCategory;
+}
+
+// EP3 SiR / K-series Honda maintenance schedule + general items.
+// 'Custom' must stay last.
+const SERVICE_PRESETS: ServicePreset[] = [
+  // Oil & fluids
+  { label: 'Oil & Filter',     title: 'Engine Oil & Filter Change',        category: 'oil-change' },
+  { label: 'Coolant Flush',    title: 'Coolant Flush & Fill',               category: 'coolant' },
+  { label: 'Brake Fluid',      title: 'Brake Fluid Flush',                  category: 'brake-fluid' },
+  { label: 'Trans. Fluid',     title: 'Manual Transmission Fluid Change',   category: 'transmission-fluid' },
+  // Filters
+  { label: 'Air Filter',       title: 'Engine Air Filter Replacement',      category: 'filter' },
+  { label: 'Cabin Filter',     title: 'Cabin Air Filter Replacement',       category: 'filter' },
+  { label: 'Fuel Filter',      title: 'Fuel Filter Replacement',            category: 'filter' },
+  { label: 'PCV Valve',        title: 'PCV Valve Replacement',              category: 'filter' },
+  // Ignition
+  { label: 'Spark Plugs',      title: 'Spark Plug Replacement',             category: 'spark-plugs' },
+  // Brakes
+  { label: 'Brake Pads',       title: 'Brake Pad Replacement',              category: 'brakes' },
+  { label: 'Brake Rotors',     title: 'Brake Rotor Replacement',            category: 'brakes' },
+  { label: 'Brake Caliper',    title: 'Brake Caliper Service',              category: 'brakes' },
+  // Tires & wheels
+  { label: 'Tire Rotation',    title: 'Tire Rotation',                      category: 'tires' },
+  { label: 'New Tires',        title: 'New Tires',                          category: 'tires' },
+  { label: 'Alignment',        title: 'Four-Wheel Alignment',               category: 'tires' },
+  { label: 'Wheel Balance',    title: 'Wheel Balance',                      category: 'tires' },
+  { label: 'Wheel Bearing',    title: 'Wheel Bearing Replacement',          category: 'wheel-bearing' },
+  // K-series engine
+  { label: 'Valve Clearance',  title: 'Valve Clearance Adjustment',         category: 'inspection' },
+  { label: 'Timing Chain',     title: 'Timing Chain Inspection',            category: 'inspection' },
+  { label: 'Throttle Body',    title: 'Throttle Body Cleaning',             category: 'other' },
+  { label: 'VTC Solenoid',     title: 'VTC Solenoid Service',               category: 'other' },
+  // General
+  { label: 'Clutch',           title: 'Clutch Replacement',                 category: 'other' },
+  { label: 'Battery',          title: 'Battery Replacement',                category: 'other' },
+  { label: 'Wiper Blades',     title: 'Wiper Blade Replacement',            category: 'other' },
+  { label: 'Inspection',       title: 'General Vehicle Inspection',         category: 'inspection' },
+  { label: 'Custom',           title: '',                                   category: 'other' },
+];
 
 interface Props {
   isOpen: boolean;
@@ -39,7 +82,7 @@ interface FormState {
 function emptyForm(vehicleId: string, odo: number): FormState {
   return {
     vehicleId,
-    category: 'oil-change',
+    category: 'other',
     title: '',
     date: formatInputDate(new Date()),
     odometer: odo || '',
@@ -65,10 +108,14 @@ export default function MaintenanceForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     if (record) {
+      // Restore chip highlight: match by title first, fall back to 'Custom'
+      const match = SERVICE_PRESETS.find((p) => p.title === record.title && p.label !== 'Custom');
+      setSelectedPreset(match ? match.label : 'Custom');
       setForm({
         vehicleId: record.vehicleId,
         category: record.category,
@@ -85,10 +132,22 @@ export default function MaintenanceForm({
         nextDueDate: record.nextDueDate ? formatInputDate(record.nextDueDate) : '',
       });
     } else {
+      setSelectedPreset(null);
       setForm(emptyForm(vehicleId, currentOdometer));
     }
     setErrors({});
   }, [isOpen, record, vehicleId, currentOdometer]);
+
+  const selectPreset = (preset: ServicePreset) => {
+    setSelectedPreset(preset.label);
+    setErrors((e) => ({ ...e, title: '' }));
+    setForm((p) => ({
+      ...p,
+      category: preset.category,
+      // Custom: keep whatever the user already typed; preset: fill the title
+      title: preset.label !== 'Custom' ? preset.title : p.title,
+    }));
+  };
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -142,19 +201,47 @@ export default function MaintenanceForm({
     <>
       <Modal isOpen={isOpen} onClose={onClose} title={record ? 'Edit Service' : 'Log Service'}>
         <div className="px-5 py-4 space-y-4 pb-24">
-          <FormField label="Category" required>
-            <Select
-              value={form.category}
-              onChange={(e) => set('category', e.target.value as MaintenanceCategory)}
-              options={CATEGORY_LIST}
-            />
-          </FormField>
 
+          {/* Service type chip picker */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Service Type
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {SERVICE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => selectPreset(preset)}
+                  className={`py-2.5 px-3 rounded-xl text-[13px] font-semibold text-center transition-colors ${
+                    preset.label === 'Custom' ? 'col-span-2' : ''
+                  } ${
+                    selectedPreset === preset.label
+                      ? 'bg-ios-blue text-white'
+                      : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 active:bg-gray-200 dark:active:bg-zinc-700'
+                  }`}
+                >
+                  {preset.label === 'Custom' ? '+ Custom' : preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Title — auto-filled by chip, always editable */}
           <FormField label="Title" error={errors.title} required>
             <Input
               value={form.title}
-              onChange={(e) => set('title', e.target.value)}
-              placeholder="e.g. Oil Change – Mobil 1 5W-30"
+              onChange={(e) => {
+                set('title', e.target.value);
+                // If user edits the title manually, switch to Custom highlight
+                const match = SERVICE_PRESETS.find(
+                  (p) => p.title === e.target.value && p.label !== 'Custom',
+                );
+                setSelectedPreset(match ? match.label : 'Custom');
+              }}
+              placeholder={selectedPreset === 'Custom' || !selectedPreset
+                ? 'Describe the service…'
+                : 'Customise if needed'}
             />
           </FormField>
 
