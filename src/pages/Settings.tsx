@@ -510,7 +510,7 @@ export default function SettingsPage() {
           </p>
           <Card>
             <p className="text-[15px] font-semibold text-black dark:text-white">MotoTrack</p>
-            <p className="text-sm text-ios-gray dark:text-gray-400">Version 0.1.0</p>
+            <p className="text-sm text-ios-gray dark:text-gray-400">Version {__APP_VERSION__}</p>
             <p className="text-xs text-ios-gray dark:text-gray-500 mt-2">
               All data is stored locally on your device using IndexedDB. No account required. No data leaves your device.
             </p>
