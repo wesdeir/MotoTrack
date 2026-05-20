@@ -20,7 +20,7 @@ export default function BottomNav() {
     // relative + bleed strip: defensive fill in case any residual sub-pixel
     //   gap remains; has zero height on devices with no safe-area inset.
     <nav
-      className="relative flex-shrink-0 bg-white/95 dark:bg-[#080E1C]/80 backdrop-blur-xl border-t border-gray-200 dark:border-white/[0.08]"
+      className="relative flex-shrink-0 bg-white/75 dark:bg-[#080E1C]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-white/[0.08]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex h-14 items-center">

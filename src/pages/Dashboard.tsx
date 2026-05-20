@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   if (vehicle === null) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+      <div className="h-full flex flex-col items-center justify-center px-8 text-center">
         <div className="text-5xl mb-4">🚗</div>
         <h2 className="text-xl font-bold text-black dark:text-white mb-2">No vehicle added</h2>
         <p className="text-sm text-ios-gray dark:text-gray-400 mb-6">
@@ -110,7 +110,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <Card padding={false}>
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.08]">
               {urgentReminders.map((r) => (
                 <ReminderCard key={r.id} reminder={r} />
               ))}
@@ -162,7 +162,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <Card padding={false}>
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.08]">
               {recentMaintenance.map((r) => (
                 <MaintenanceItem key={r.id} record={r} />
               ))}
@@ -184,7 +184,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <Card padding={false}>
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.08]">
               {recentFuel.map((r) => (
                 <FuelItem key={r.id} record={r} />
               ))}

@@ -324,7 +324,7 @@ export default function ReportsPage() {
                 No data yet
               </p>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+              <div className="divide-y divide-gray-100 dark:divide-white/[0.08]">
                 {breakdownData.rows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between py-3">
                     <span className="text-[15px] text-black dark:text-white">{row.label}</span>

@@ -19,10 +19,10 @@ export default function StatCard({ label, value, subValue, accent = 'blue', onCl
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white dark:bg-white/[0.04] dark:backdrop-blur-md dark:border dark:border-white/[0.08] rounded-2xl p-4 shadow-ios dark:shadow-none ${onClick ? 'cursor-pointer active:opacity-75' : ''}`}
+      className={`relative bg-white/80 backdrop-blur-md border border-gray-200/70 shadow-ios dark:bg-white/[0.04] dark:border-white/[0.08] dark:shadow-none rounded-2xl p-4 ${onClick ? 'cursor-pointer active:opacity-75' : ''}`}
     >
       {onClick && (
-        <ChevronRight size={12} className="absolute top-3.5 right-3 text-gray-300 dark:text-zinc-600" />
+        <ChevronRight size={12} className="absolute top-3.5 right-3 text-gray-300 dark:text-white/25" />
       )}
       <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide mb-1">
         {label}

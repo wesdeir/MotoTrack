@@ -7,7 +7,7 @@ interface PageHeaderProps {
 export default function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
     <div
-      className="flex items-start justify-between px-4 pb-3 bg-ios-bg dark:bg-transparent"
+      className="flex items-start justify-between px-4 pb-3 bg-transparent"
       style={{ paddingTop: `calc(1rem + var(--safe-top))` }}
     >
       <div className="min-w-0 flex-1">
