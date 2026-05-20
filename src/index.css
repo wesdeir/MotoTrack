@@ -15,12 +15,20 @@
 }
 
 html {
+  /* -webkit-fill-available is the iOS PWA fix:
+     plain height:100% measures the viewport EXCLUDING the physical safe-area
+     zone, so every child using height:100% inherits a height that stops short
+     of the screen edge — causing the "floating nav" gap. -webkit-fill-available
+     gives the true physical screen height; non-WebKit browsers ignore it and
+     fall back to height:100% above. */
   height: 100%;
+  height: -webkit-fill-available;
   overscroll-behavior: none;
 }
 
 body {
   height: 100%;
+  height: -webkit-fill-available;
   overscroll-behavior: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;

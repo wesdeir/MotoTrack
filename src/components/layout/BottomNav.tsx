@@ -13,14 +13,12 @@ export default function BottomNav() {
   const location = useLocation();
 
   return (
-    // flex-shrink-0: sits at the bottom of AppShell's 100dvh content area.
-    // paddingBottom: keeps icons above the home indicator (single safe-area
-    //   application — NOT duplicated on body or AppShell).
-    // relative: establishes the containing block for the bleed strip below.
-    // Bleed strip (absolute, top:100%): extends nav colour into the
-    //   env(safe-area-inset-bottom) padding zone that AppShell's box-content
-    //   layout creates below the flex content area, eliminating any colour
-    //   mismatch between the nav and the physical screen edge.
+    // flex-shrink-0: plain flex child, sits at the bottom of AppShell's
+    //   -webkit-fill-available height (= true physical screen bottom).
+    // paddingBottom: keeps icons above the home indicator — single safe-area
+    //   application (not duplicated on body or AppShell).
+    // relative + bleed strip: defensive fill in case any residual sub-pixel
+    //   gap remains; has zero height on devices with no safe-area inset.
     <nav
       className="relative flex-shrink-0 bg-white/95 dark:bg-[#1C1C1E] backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -51,10 +49,8 @@ export default function BottomNav() {
         })}
       </div>
 
-      {/* Bleed strip: fills the AppShell box-content padding zone (the
-          physical safe-area below the flex content area) with nav colour.
-          height matches the safe-area inset so it vanishes on devices
-          without a home indicator (resolves to 0px). */}
+      {/* Bleed strip: defensive cover for any sub-pixel gap below the nav.
+          Resolves to height:0 on devices with no home indicator. */}
       <div
         className="absolute inset-x-0 bg-white dark:bg-[#1C1C1E]"
         style={{ top: '100%', height: 'env(safe-area-inset-bottom, 0px)' }}
