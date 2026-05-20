@@ -61,7 +61,7 @@ function vehicleToForm(v: Vehicle): VehicleForm {
 }
 
 export default function SettingsPage() {
-  const { allVehicles, activeId, switchVehicle, addVehicle, updateVehicle, deleteVehicle } = useVehicle();
+  const { vehicle, allVehicles, activeId, switchVehicle, addVehicle, updateVehicle, deleteVehicle } = useVehicle();
   const { theme, setTheme } = useTheme();
 
   // null = fleet list; 'new' = add form; string id = edit form
@@ -80,17 +80,20 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  // Auto-open add form when there are no vehicles
   useEffect(() => {
+    // vehicle === undefined means the DB query is still loading — don't act yet.
+    // vehicle === null (or allVehicles empty after load) means no vehicles exist → auto-open.
+    if (vehicle === undefined) return;
+
     if (allVehicles.length === 0 && editId === null) {
       setEditId('new');
       setForm(emptyVehicleForm());
     }
-    // If we were editing a vehicle that was just deleted, go back to list
+    // If the vehicle we were editing was just deleted, close the form
     if (editId && editId !== 'new' && !allVehicles.find((v) => v.id === editId)) {
       setEditId(null);
     }
-  }, [allVehicles, editId]);
+  }, [vehicle, allVehicles, editId]);
 
   const openAdd = () => {
     setForm(emptyVehicleForm());

@@ -21,7 +21,7 @@ export default function ConfirmDialog({
       />
       <div
         className="relative mx-2 space-y-2 animate-slide-up"
-        style={{ marginBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}
+        style={{ marginBottom: 'calc(var(--nav-height) + var(--safe-bottom) + 8px)' }}
       >
         <div className="bg-white dark:bg-ios-dark-card rounded-2xl overflow-hidden">
           <div className="px-4 py-4 text-center border-b border-gray-100 dark:border-zinc-800">
