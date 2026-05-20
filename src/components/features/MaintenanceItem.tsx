@@ -1,21 +1,7 @@
 import { ChevronRight } from 'lucide-react';
-import type { MaintenanceRecord, MaintenanceCategory } from '../../models';
+import type { MaintenanceRecord } from '../../models';
 import { formatDate, formatOdometer, formatCurrency } from '../../utils/formatters';
-
-const EMOJI: Record<MaintenanceCategory, string> = {
-  'oil-change': '🔧',
-  brakes: '🛑',
-  'wheel-bearing': '⚙️',
-  tires: '🔄',
-  coolant: '🌡️',
-  'transmission-fluid': '🔩',
-  'brake-fluid': '💧',
-  'power-steering-fluid': '💧',
-  'spark-plugs': '⚡',
-  filter: '🫙',
-  inspection: '🔍',
-  other: '🔩',
-};
+import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
 
 interface MaintenanceItemProps {
   record: MaintenanceRecord;
@@ -29,7 +15,7 @@ export default function MaintenanceItem({ record, onClick }: MaintenanceItemProp
       className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-zinc-700 text-left"
     >
       <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl flex-shrink-0">
-        {EMOJI[record.category]}
+        {CATEGORY_EMOJI[record.category]}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-black dark:text-white truncate leading-tight">

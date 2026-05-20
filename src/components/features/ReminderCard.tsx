@@ -1,23 +1,9 @@
 import { ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import type { ReminderWithStatus, MaintenanceCategory } from '../../models';
+import type { ReminderWithStatus } from '../../models';
 import { StatusBadge } from '../ui/Badge';
 import { formatKm, formatDate } from '../../utils/formatters';
-
-const EMOJI: Record<MaintenanceCategory, string> = {
-  'oil-change': '🔧',
-  brakes: '🛑',
-  'wheel-bearing': '⚙️',
-  tires: '🔄',
-  coolant: '🌡️',
-  'transmission-fluid': '🔩',
-  'brake-fluid': '💧',
-  'power-steering-fluid': '💧',
-  'spark-plugs': '⚡',
-  filter: '🫙',
-  inspection: '🔍',
-  other: '🔩',
-};
+import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
 
 const PROGRESS_COLOR: Record<string, string> = {
   overdue: 'bg-ios-red',
@@ -66,7 +52,7 @@ export default function ReminderCard({
       }`}
     >
       <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
-        {EMOJI[reminder.serviceType]}
+        {CATEGORY_EMOJI[reminder.serviceType]}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">

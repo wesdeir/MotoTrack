@@ -13,6 +13,7 @@ import Button from '../../components/ui/Button';
 import MaintenanceItem from '../../components/features/MaintenanceItem';
 import ReminderCard from '../../components/features/ReminderCard';
 import MaintenanceForm from './MaintenanceForm';
+import TimelineView from './TimelineView';
 
 export default function MaintenancePage() {
   const { vehicle } = useVehicle();
@@ -25,7 +26,7 @@ export default function MaintenancePage() {
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<MaintenanceRecord | null>(null);
   const [filter, setFilter] = useState<MaintenanceCategory | 'all'>('all');
-  const [tab, setTab] = useState<'log' | 'reminders'>('log');
+  const [tab, setTab] = useState<'log' | 'timeline' | 'reminders'>('log');
 
   const filtered = useMemo(
     () => (filter === 'all' ? records : records.filter((r) => r.category === filter)),
@@ -69,22 +70,36 @@ export default function MaintenancePage() {
 
       {/* Tab bar */}
       <div className="px-4 pt-1 pb-2 flex gap-2">
-        {(['log', 'reminders'] as const).map((t) => (
+        {(
+          [
+            { value: 'log',       label: 'Log' },
+            { value: 'timeline',  label: 'Timeline' },
+            { value: 'reminders', label: `Reminders${reminders.length ? ` (${reminders.length})` : ''}` },
+          ] as const
+        ).map(({ value, label }) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={value}
+            onClick={() => setTab(value)}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-              tab === t
+              tab === value
                 ? 'bg-ios-blue text-white'
                 : 'bg-white dark:bg-ios-dark-card text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-zinc-700'
             }`}
           >
-            {t === 'log' ? 'Service Log' : `Reminders${reminders.length ? ` (${reminders.length})` : ''}`}
+            {label}
           </button>
         ))}
       </div>
 
-      {tab === 'log' ? (
+      {tab === 'timeline' ? (
+        <div className="flex-1 overflow-y-auto scroll-area px-4 pb-4">
+          <TimelineView
+            maintenanceRecords={records}
+            fuelRecords={fuel}
+            onEditMaintenance={openEdit}
+          />
+        </div>
+      ) : tab === 'log' ? (
         <>
           {/* Category filter */}
           {usedCategories.length > 1 && (
