@@ -2,20 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   CSS variables
+   --------------------------------------------------------------------------- */
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-height: 56px;
 
-  /* Accent colour — space-separated RGB channels so Tailwind opacity modifiers work.
-     Light mode: #007AFF (standard iOS blue)
-     Dark mode:  #5085E0 (muted deep blue — overridden in html.dark below) */
+  /* Accent — space-separated RGB so Tailwind opacity modifiers work.
+     Light mode always uses iOS blue; dark mode is controlled per theme. */
   --tw-accent-rgb: 0 122 255;
+
+  /* Ambient gradient blobs (dark mode body background) */
+  --blob-1: rgba(80, 133, 224, 0.10);
+  --blob-2: rgba(99, 57, 210, 0.07);
 }
 
-html.dark {
-  --tw-accent-rgb: 80 133 224;  /* #5085E0 — muted, deep blue */
+/* ---------------------------------------------------------------------------
+   Dark-mode theme definitions
+   Each class is applied to <html> by ColorThemeContext.
+   Only --tw-accent-rgb and blob colours change — all other glass/layout
+   variables stay the same across themes.
+   --------------------------------------------------------------------------- */
+
+/* Ocean (default) */
+html.dark,
+html.dark.theme-ocean {
+  --tw-accent-rgb: 80 133 224;
+  --blob-1: rgba(80, 133, 224, 0.10);
+  --blob-2: rgba(99,  57, 210, 0.07);
 }
+
+/* Electric — cyan, inspired by glowing-sphere aesthetic */
+html.dark.theme-electric {
+  --tw-accent-rgb: 34 211 238;
+  --blob-1: rgba(34, 211, 238, 0.09);
+  --blob-2: rgba(0,  160, 210, 0.07);
+}
+
+/* Aurora — violet/purple */
+html.dark.theme-aurora {
+  --tw-accent-rgb: 139 92 246;
+  --blob-1: rgba(139, 92, 246, 0.10);
+  --blob-2: rgba( 79, 42, 210, 0.08);
+}
+
+/* Emerald — deep green */
+html.dark.theme-emerald {
+  --tw-accent-rgb: 16 185 129;
+  --blob-1: rgba( 16, 185, 129, 0.09);
+  --blob-2: rgba(  5, 120,  80, 0.07);
+}
+
+/* Sunset — amber/orange with a red secondary */
+html.dark.theme-sunset {
+  --tw-accent-rgb: 251 146 60;
+  --blob-1: rgba(251, 146,  60, 0.09);
+  --blob-2: rgba(239,  68,  68, 0.07);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
 
 /* Prevent iOS double-tap zoom */
 * {
@@ -24,12 +73,8 @@ html.dark {
 }
 
 html {
-  /* -webkit-fill-available is the iOS PWA fix:
-     plain height:100% measures the viewport EXCLUDING the physical safe-area
-     zone, so every child using height:100% inherits a height that stops short
-     of the screen edge — causing the "floating nav" gap. -webkit-fill-available
-     gives the true physical screen height; non-WebKit browsers ignore it and
-     fall back to height:100% above. */
+  /* iOS PWA height fix: -webkit-fill-available = true physical screen height.
+     plain height:100% stops short of the safe-area zone. */
   height: 100%;
   height: -webkit-fill-available;
   overscroll-behavior: none;
@@ -48,39 +93,47 @@ body {
 html.dark body {
   background-color: #080E1C;
   color: #fff;
-  /* Subtle ambient gradient blobs — barely visible, add depth without clutter */
+  /* Ambient gradient blobs — driven by theme variables */
   background-image:
-    radial-gradient(ellipse at 15% 15%, rgba(80, 133, 224, 0.10) 0%, transparent 52%),
-    radial-gradient(ellipse at 85% 85%, rgba(99, 57, 210, 0.07) 0%, transparent 52%);
+    radial-gradient(ellipse at 15% 15%, var(--blob-1) 0%, transparent 52%),
+    radial-gradient(ellipse at 85% 85%, var(--blob-2) 0%, transparent 52%);
 }
 
 #root {
   height: 100%;
 }
 
-/* Smooth momentum scrolling on iOS */
+/* ---------------------------------------------------------------------------
+   Scroll
+   --------------------------------------------------------------------------- */
+
 .scroll-area {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
 
-/* Prevent inputs from zooming on iOS — min 16px */
+/* Prevent inputs from zooming on iOS (min 16 px) */
 input, select, textarea {
   font-size: 16px !important;
 }
 
-/* iOS-style list separator */
+/* ---------------------------------------------------------------------------
+   Utilities
+   --------------------------------------------------------------------------- */
+
 .list-separator > * + * {
   border-top: 1px solid;
 }
 
-/* Dark-mode aware separator */
 .separator {
   @apply border-gray-200 dark:border-white/[0.08];
 }
 
-/* Slide-up animation for modals */
+/* ---------------------------------------------------------------------------
+   Animations
+   --------------------------------------------------------------------------- */
+
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
@@ -99,7 +152,10 @@ input, select, textarea {
   animation: fadeIn 0.2s ease both;
 }
 
-/* Progress bar */
+/* ---------------------------------------------------------------------------
+   Progress bar
+   --------------------------------------------------------------------------- */
+
 .progress-bar {
   height: 4px;
   border-radius: 2px;
@@ -117,12 +173,18 @@ input, select, textarea {
   transition: width 0.3s ease;
 }
 
-/* Active nav icon glow in dark mode */
+/* ---------------------------------------------------------------------------
+   Nav icon glow — uses the active theme's accent colour automatically
+   --------------------------------------------------------------------------- */
+
 html.dark .nav-icon-active {
-  filter: drop-shadow(0 0 7px rgba(80, 133, 224, 0.70));
+  filter: drop-shadow(0 0 7px rgb(var(--tw-accent-rgb) / 0.65));
 }
 
-/* Recharts dark mode text */
+/* ---------------------------------------------------------------------------
+   Recharts dark-mode overrides
+   --------------------------------------------------------------------------- */
+
 .dark .recharts-text,
 .dark .recharts-cartesian-axis-tick-value {
   fill: #8896B0;

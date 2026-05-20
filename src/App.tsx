@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { ColorThemeProvider } from './context/ColorThemeContext';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import MaintenancePage from './pages/Maintenance';
@@ -10,6 +11,7 @@ import SettingsPage from './pages/Settings';
 export default function App() {
   return (
     <ThemeProvider>
+      <ColorThemeProvider>
       <HashRouter>
         <AppShell>
           <Routes>
@@ -22,6 +24,7 @@ export default function App() {
           </Routes>
         </AppShell>
       </HashRouter>
+      </ColorThemeProvider>
     </ThemeProvider>
   );
 }

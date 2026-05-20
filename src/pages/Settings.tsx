@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
 import { useTheme } from '../context/ThemeContext';
+import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { db } from '../db/database';
 import { clearAndReseed } from '../db/seed';
 import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder } from '../models';
@@ -63,6 +64,7 @@ function vehicleToForm(v: Vehicle): VehicleForm {
 export default function SettingsPage() {
   const { vehicle, allVehicles, activeId, switchVehicle, addVehicle, updateVehicle, deleteVehicle } = useVehicle();
   const { theme, setTheme } = useTheme();
+  const { colorTheme, setColorTheme } = useColorTheme();
 
   // null = fleet list; 'new' = add form; string id = edit form
   const [editId, setEditId] = useState<'new' | string | null>(null);
@@ -368,7 +370,7 @@ export default function SettingsPage() {
           {/* Fleet list */}
           {editId === null && allVehicles.length > 0 && (
             <Card padding={false}>
-              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+              <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                 {allVehicles.map((v) => (
                   <div key={v.id} className="flex items-center gap-3 px-4 py-3.5">
                     {/* Tap row to switch active vehicle */}
@@ -380,7 +382,7 @@ export default function SettingsPage() {
                         className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
                           v.id === activeId
                             ? 'bg-ios-blue'
-                            : 'border-2 border-gray-300 dark:border-zinc-600'
+                            : 'border-2 border-gray-300 dark:border-white/25'
                         }`}
                       >
                         {v.id === activeId && (
@@ -417,12 +419,13 @@ export default function SettingsPage() {
             Appearance
           </p>
           <Card padding={false}>
-            <div className="flex">
+            {/* Light / Dark / System */}
+            <div className="flex border-b border-gray-100 dark:border-white/[0.08]">
               {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
                   onClick={() => setTheme(value)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 py-4 transition-colors ${
+                  className={`flex-1 flex flex-col items-center gap-1.5 py-3.5 transition-colors ${
                     theme === value ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'
                   }`}
                 >
@@ -430,6 +433,45 @@ export default function SettingsPage() {
                   <span className="text-xs font-medium">{label}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Colour theme swatches */}
+            <div className="px-4 pt-3.5 pb-4">
+              <p className="text-xs font-medium text-ios-gray dark:text-gray-400 mb-3">
+                Colour Theme
+                <span className="ml-1 text-[10px] opacity-50">· dark mode</span>
+              </p>
+              <div className="flex justify-between">
+                {COLOR_THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setColorTheme(t.id)}
+                    className="flex flex-col items-center gap-1.5"
+                  >
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        colorTheme === t.id
+                          ? 'ring-2 ring-white/70 scale-110'
+                          : 'opacity-70 active:opacity-90 active:scale-105'
+                      }`}
+                      style={{ background: t.previewGradient }}
+                    >
+                      {colorTheme === t.id && (
+                        <Check size={16} className="text-white drop-shadow" strokeWidth={3} />
+                      )}
+                    </div>
+                    <span
+                      className={`text-[10px] font-medium transition-colors ${
+                        colorTheme === t.id
+                          ? 'text-ios-blue'
+                          : 'text-ios-gray dark:text-gray-500'
+                      }`}
+                    >
+                      {t.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </Card>
         </section>
@@ -440,33 +482,33 @@ export default function SettingsPage() {
             Data
           </p>
           <Card padding={false}>
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
               <button
                 onClick={handleExport}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-zinc-700 text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
               >
-                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-ios-blue/10 flex items-center justify-center flex-shrink-0">
                   <Download size={18} className="text-ios-blue" />
                 </div>
                 <div className="flex-1">
                   <p className="text-[15px] font-medium text-black dark:text-white">Export Backup</p>
                   <p className="text-xs text-ios-gray dark:text-gray-400">Download all data as JSON</p>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 dark:text-zinc-600" />
+                <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
               </button>
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-zinc-700 text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
               >
-                <div className="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-green-50 dark:bg-ios-green/10 flex items-center justify-center flex-shrink-0">
                   <Upload size={18} className="text-ios-green" />
                 </div>
                 <div className="flex-1">
                   <p className="text-[15px] font-medium text-black dark:text-white">Import Backup</p>
                   <p className="text-xs text-ios-gray dark:text-gray-400">Restore from a JSON backup file</p>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 dark:text-zinc-600" />
+                <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
               </button>
               <input
                 ref={fileInputRef}
@@ -478,16 +520,16 @@ export default function SettingsPage() {
 
               <button
                 onClick={() => setConfirmReseed(true)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-zinc-700 text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
               >
-                <div className="w-9 h-9 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-yellow-50 dark:bg-yellow-400/10 flex items-center justify-center flex-shrink-0">
                   <RefreshCw size={18} className="text-ios-yellow" />
                 </div>
                 <div className="flex-1">
                   <p className="text-[15px] font-medium text-black dark:text-white">Load Demo Data</p>
                   <p className="text-xs text-ios-gray dark:text-gray-400">Reset to 2002 Civic SiR sample data</p>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 dark:text-zinc-600" />
+                <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
               </button>
             </div>
           </Card>
@@ -520,7 +562,7 @@ export default function SettingsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-zinc-800 text-white rounded-2xl text-sm font-medium shadow-ios-lg animate-fade-in">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-zinc-800 dark:bg-[#0D1525]/95 dark:backdrop-blur-xl dark:border dark:border-white/[0.10] text-white rounded-2xl text-sm font-medium shadow-ios-lg animate-fade-in">
           {toast}
         </div>
       )}
