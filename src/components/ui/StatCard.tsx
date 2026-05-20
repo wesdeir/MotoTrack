@@ -19,7 +19,7 @@ export default function StatCard({ label, value, subValue, accent = 'blue', onCl
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white dark:bg-ios-dark-card rounded-2xl p-4 shadow-ios ${onClick ? 'cursor-pointer active:opacity-75' : ''}`}
+      className={`relative bg-white dark:bg-white/[0.04] dark:backdrop-blur-md dark:border dark:border-white/[0.08] rounded-2xl p-4 shadow-ios dark:shadow-none ${onClick ? 'cursor-pointer active:opacity-75' : ''}`}
     >
       {onClick && (
         <ChevronRight size={12} className="absolute top-3.5 right-3 text-gray-300 dark:text-zinc-600" />

@@ -11,9 +11,9 @@ export default function FuelItem({ record, onClick }: FuelItemProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-zinc-700 text-left"
+      className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
     >
-      <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-ios-green/10 flex items-center justify-center flex-shrink-0">
         <Droplets size={20} className="text-ios-green" />
       </div>
       <div className="flex-1 min-w-0">
@@ -36,7 +36,7 @@ export default function FuelItem({ record, onClick }: FuelItemProps) {
         ) : (
           <span className="text-xs text-ios-gray dark:text-gray-500">—</span>
         )}
-        <ChevronRight size={16} className="text-gray-300 dark:text-zinc-600" />
+        <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
       </div>
     </button>
   );

@@ -83,7 +83,7 @@ export default function MaintenancePage() {
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               tab === value
                 ? 'bg-ios-blue text-white'
-                : 'bg-white dark:bg-ios-dark-card text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-zinc-700'
+                : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
             }`}
           >
             {label}
@@ -110,7 +110,7 @@ export default function MaintenancePage() {
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     filter === 'all'
                       ? 'bg-ios-blue text-white'
-                      : 'bg-white dark:bg-ios-dark-card text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-zinc-700'
+                      : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
                   }`}
                 >
                   All
@@ -122,7 +122,7 @@ export default function MaintenancePage() {
                     className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       filter === c.value
                         ? 'bg-ios-blue text-white'
-                        : 'bg-white dark:bg-ios-dark-card text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-zinc-700'
+                        : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
                     }`}
                   >
                     {c.label}
@@ -142,7 +142,7 @@ export default function MaintenancePage() {
               />
             ) : (
               <Card padding={false}>
-                <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+                <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                   {filtered.map((r) => (
                     <MaintenanceItem key={r.id} record={r} onClick={() => openEdit(r)} />
                   ))}
@@ -161,7 +161,7 @@ export default function MaintenancePage() {
             />
           ) : (
             <Card padding={false}>
-              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+              <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                 {reminders.map((r) => (
                   <ReminderCard key={r.id} reminder={r} />
                 ))}

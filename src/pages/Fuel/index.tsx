@@ -104,7 +104,7 @@ export default function FuelPage() {
           />
         ) : (
           <Card padding={false}>
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
               {records.map((r) => (
                 <FuelItem key={r.id} record={r} onClick={() => openEdit(r)} />
               ))}

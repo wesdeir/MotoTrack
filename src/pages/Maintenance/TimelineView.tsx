@@ -51,11 +51,11 @@ function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
   const isMaintenance = entry.type === 'maintenance';
 
   const dot = isMaintenance ? (
-    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-base flex-shrink-0 z-10">
+    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-ios-blue/10 flex items-center justify-center text-base flex-shrink-0 z-10">
       {CATEGORY_EMOJI[entry.record.category]}
     </div>
   ) : (
-    <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 z-10">
+    <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-ios-green/10 flex items-center justify-center flex-shrink-0 z-10">
       <Droplets size={16} className="text-ios-green" />
     </div>
   );
@@ -63,7 +63,7 @@ function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
   const content = isMaintenance ? (
     <button
       onClick={() => onEditMaintenance(entry.record)}
-      className="w-full text-left active:bg-gray-50 dark:active:bg-zinc-800 rounded-xl -mx-1 px-1 transition-colors"
+      className="w-full text-left active:bg-gray-50 dark:active:bg-white/[0.05] rounded-xl -mx-1 px-1 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -112,7 +112,7 @@ function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
         <div className="mt-3">{dot}</div>
         {/* Line grows to fill row height — hidden on last entry of each group */}
         {!isLast && (
-          <div className="w-px flex-1 bg-gray-200 dark:bg-zinc-700 mt-1" />
+          <div className="w-px flex-1 bg-gray-200 dark:bg-white/[0.08] mt-1" />
         )}
       </div>
 
@@ -194,11 +194,11 @@ export default function TimelineView({
         <div key={group.key}>
           {/* Month separator */}
           <div className="flex items-center gap-3 px-4 py-3">
-            <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-700" />
+            <div className="h-px flex-1 bg-gray-200 dark:bg-white/[0.08]" />
             <span className="text-xs font-semibold text-ios-gray dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
               {group.label}
             </span>
-            <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-700" />
+            <div className="h-px flex-1 bg-gray-200 dark:bg-white/[0.08]" />
           </div>
 
           {/* Entries */}

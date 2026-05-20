@@ -29,7 +29,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       />
       {/* Sheet */}
       <div
-        className="relative bg-white dark:bg-ios-dark-card rounded-t-3xl shadow-ios-lg animate-slide-up flex flex-col"
+        className="relative bg-white dark:bg-[#080E1C]/90 dark:backdrop-blur-2xl dark:border-t dark:border-x dark:border-white/[0.10] rounded-t-3xl shadow-ios-lg animate-slide-up flex flex-col"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 16px)',
           maxHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - 24px)',
@@ -40,7 +40,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-white/[0.08] flex-shrink-0">
           <h2 className="text-lg font-bold text-black dark:text-white">{title}</h2>
           <button
             onClick={onClose}

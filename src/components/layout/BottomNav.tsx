@@ -20,7 +20,7 @@ export default function BottomNav() {
     // relative + bleed strip: defensive fill in case any residual sub-pixel
     //   gap remains; has zero height on devices with no safe-area inset.
     <nav
-      className="relative flex-shrink-0 bg-white/95 dark:bg-[#1C1C1E] backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800"
+      className="relative flex-shrink-0 bg-white/95 dark:bg-[#080E1C]/80 backdrop-blur-xl border-t border-gray-200 dark:border-white/[0.08]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex h-14 items-center">
@@ -34,7 +34,7 @@ export default function BottomNav() {
             >
               <Icon
                 size={24}
-                className={active ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'}
+                className={`${active ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'} ${active ? 'nav-icon-active' : ''}`}
                 strokeWidth={active ? 2.5 : 1.8}
               />
               <span
@@ -52,7 +52,7 @@ export default function BottomNav() {
       {/* Bleed strip: defensive cover for any sub-pixel gap below the nav.
           Resolves to height:0 on devices with no home indicator. */}
       <div
-        className="absolute inset-x-0 bg-white dark:bg-[#1C1C1E]"
+        className="absolute inset-x-0 bg-white dark:bg-[#080E1C]"
         style={{ top: '100%', height: 'env(safe-area-inset-bottom, 0px)' }}
       />
     </nav>

@@ -6,6 +6,15 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-height: 56px;
+
+  /* Accent colour — space-separated RGB channels so Tailwind opacity modifiers work.
+     Light mode: #007AFF (standard iOS blue)
+     Dark mode:  #5085E0 (muted deep blue — overridden in html.dark below) */
+  --tw-accent-rgb: 0 122 255;
+}
+
+html.dark {
+  --tw-accent-rgb: 80 133 224;  /* #5085E0 — muted, deep blue */
 }
 
 /* Prevent iOS double-tap zoom */
@@ -36,13 +45,13 @@ body {
   color: #000;
 }
 
-html.dark {
-  background-color: #000;
-}
-
 html.dark body {
-  background-color: #000;
+  background-color: #080E1C;
   color: #fff;
+  /* Subtle ambient gradient blobs — barely visible, add depth without clutter */
+  background-image:
+    radial-gradient(ellipse at 15% 15%, rgba(80, 133, 224, 0.10) 0%, transparent 52%),
+    radial-gradient(ellipse at 85% 85%, rgba(99, 57, 210, 0.07) 0%, transparent 52%);
 }
 
 #root {
@@ -68,7 +77,7 @@ input, select, textarea {
 
 /* Dark-mode aware separator */
 .separator {
-  @apply border-gray-200 dark:border-zinc-800;
+  @apply border-gray-200 dark:border-white/[0.08];
 }
 
 /* Slide-up animation for modals */
@@ -99,7 +108,7 @@ input, select, textarea {
 }
 
 .dark .progress-bar {
-  background: #3A3A3C;
+  background: rgba(255, 255, 255, 0.10);
 }
 
 .progress-fill {
@@ -108,13 +117,18 @@ input, select, textarea {
   transition: width 0.3s ease;
 }
 
+/* Active nav icon glow in dark mode */
+html.dark .nav-icon-active {
+  filter: drop-shadow(0 0 7px rgba(80, 133, 224, 0.70));
+}
+
 /* Recharts dark mode text */
 .dark .recharts-text,
 .dark .recharts-cartesian-axis-tick-value {
-  fill: #98989F;
+  fill: #8896B0;
 }
 
 .dark .recharts-cartesian-grid-horizontal line,
 .dark .recharts-cartesian-grid-vertical line {
-  stroke: #3A3A3C;
+  stroke: rgba(255, 255, 255, 0.08);
 }

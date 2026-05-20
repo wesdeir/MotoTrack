@@ -218,7 +218,7 @@ export default function MaintenanceForm({
                   } ${
                     selectedPreset === preset.label
                       ? 'bg-ios-blue text-white'
-                      : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 active:bg-gray-200 dark:active:bg-zinc-700'
+                      : 'bg-gray-100 dark:bg-white/[0.07] text-gray-700 dark:text-gray-300 active:bg-gray-200 dark:active:bg-white/[0.12]'
                   }`}
                 >
                   {preset.label === 'Custom' ? '+ Custom' : preset.label}
@@ -308,7 +308,7 @@ export default function MaintenanceForm({
                 />
               </FormField>
             </div>
-            <div className="mt-2 flex items-center justify-between px-1 py-2 bg-gray-50 dark:bg-zinc-800 rounded-xl">
+            <div className="mt-2 flex items-center justify-between px-1 py-2 bg-gray-50 dark:bg-white/[0.05] rounded-xl dark:border dark:border-white/[0.08]">
               <span className="text-sm text-ios-gray dark:text-gray-400">Total</span>
               <span className="text-xl font-bold text-black dark:text-white">
                 ${form.totalCost.toFixed(2)}

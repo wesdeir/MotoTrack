@@ -48,10 +48,10 @@ export default function ReminderCard({
       onClick={onClick}
       role={interactive ? 'button' : undefined}
       className={`w-full flex items-start gap-3 px-4 py-3.5 text-left ${
-        interactive ? 'cursor-pointer active:bg-gray-50 dark:active:bg-zinc-700' : ''
+        interactive ? 'cursor-pointer active:bg-gray-50 dark:active:bg-white/[0.05]' : ''
       }`}
     >
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
+      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-ios-blue/10 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
         {CATEGORY_EMOJI[reminder.serviceType]}
       </div>
       <div className="flex-1 min-w-0">
@@ -74,7 +74,7 @@ export default function ReminderCard({
         )}
       </div>
       {interactive && (
-        <ChevronRight size={16} className="text-gray-300 dark:text-zinc-600 flex-shrink-0 mt-1" />
+        <ChevronRight size={16} className="text-gray-300 dark:text-white/25 flex-shrink-0 mt-1" />
       )}
     </div>
   );
