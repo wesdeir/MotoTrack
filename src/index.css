@@ -39,6 +39,7 @@ html.dark body {
 
 #root {
   height: 100%;
+  height: 100dvh; /* override: use dynamic viewport height so fixed descendants reach the physical screen edge */
   overflow: hidden;
 }
 

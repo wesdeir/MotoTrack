@@ -14,13 +14,10 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800"
-      style={{
-        height: `calc(var(--nav-height) + var(--safe-bottom))`,
-        paddingBottom: 'var(--safe-bottom)',
-      }}
+      className="flex-shrink-0 bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex h-14">
+      <div className="flex h-14 items-center">
         {TABS.map(({ to, icon: Icon, label, exact }) => {
           const active = exact ? location.pathname === to : location.pathname.startsWith(to);
           return (
