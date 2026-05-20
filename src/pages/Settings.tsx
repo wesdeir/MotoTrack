@@ -80,20 +80,26 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 2500);
   };
 
+  // Only auto-open the add form once per mount (after DB confirms no vehicles).
+  // Using a ref prevents re-triggering on subsequent allVehicles changes.
+  const autoOpenDone = useRef(false);
   useEffect(() => {
-    // vehicle === undefined means the DB query is still loading — don't act yet.
-    // vehicle === null (or allVehicles empty after load) means no vehicles exist → auto-open.
-    if (vehicle === undefined) return;
-
-    if (allVehicles.length === 0 && editId === null) {
-      setEditId('new');
-      setForm(emptyVehicleForm());
+    if (vehicle === undefined) return; // DB still resolving
+    if (!autoOpenDone.current) {
+      autoOpenDone.current = true;
+      if (allVehicles.length === 0) {
+        setEditId('new');
+        setForm(emptyVehicleForm());
+      }
     }
-    // If the vehicle we were editing was just deleted, close the form
+  }, [vehicle, allVehicles]);
+
+  // Separate effect: if the vehicle being edited is deleted elsewhere, close the form.
+  useEffect(() => {
     if (editId && editId !== 'new' && !allVehicles.find((v) => v.id === editId)) {
       setEditId(null);
     }
-  }, [vehicle, allVehicles, editId]);
+  }, [allVehicles, editId]);
 
   const openAdd = () => {
     setForm(emptyVehicleForm());

@@ -29,8 +29,11 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       />
       {/* Sheet */}
       <div
-        className="relative bg-white dark:bg-ios-dark-card rounded-t-3xl shadow-ios-lg animate-slide-up max-h-[94vh] flex flex-col"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+        className="relative bg-white dark:bg-ios-dark-card rounded-t-3xl shadow-ios-lg animate-slide-up flex flex-col"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+          maxHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - 24px)',
+        }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">

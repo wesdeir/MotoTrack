@@ -127,24 +127,23 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
     <>
       <Modal isOpen={isOpen} onClose={onClose} title={record ? 'Edit Fill-Up' : 'Log Fill-Up'}>
         <div className="px-5 py-4 space-y-4 pb-24">
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Date" error={errors.date} required>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => set('date', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Odometer (km)" error={errors.odometer} required>
-              <Input
-                type="number"
-                value={form.odometer}
-                onChange={(e) => set('odometer', e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="211000"
-                min={0}
-              />
-            </FormField>
-          </div>
+          <FormField label="Date" error={errors.date} required>
+            <Input
+              type="date"
+              value={form.date}
+              onChange={(e) => set('date', e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Odometer (km)" error={errors.odometer} required>
+            <Input
+              type="number"
+              value={form.odometer}
+              onChange={(e) => set('odometer', e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="211000"
+              min={0}
+            />
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Litres" error={errors.litres} required>
@@ -188,32 +187,29 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
             />
           </FormField>
 
-          {/* Full tank toggle */}
-          <button
-            type="button"
-            onClick={() => set('fullTank', !form.fullTank)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-zinc-800 rounded-xl"
-          >
-            <div className="text-left">
-              <p className="text-sm font-semibold text-black dark:text-white">Full Tank</p>
-              <p className="text-xs text-ios-gray dark:text-gray-400">
-                Required for accurate fuel economy calculation
-              </p>
+          {/* Full tank segmented control */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Fill Type</p>
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-zinc-800 rounded-xl">
+              {([true, false] as const).map((val) => (
+                <button
+                  key={String(val)}
+                  type="button"
+                  onClick={() => set('fullTank', val)}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                    form.fullTank === val
+                      ? 'bg-white dark:bg-zinc-600 text-black dark:text-white shadow-sm'
+                      : 'text-ios-gray dark:text-gray-400'
+                  }`}
+                >
+                  {val ? 'Full Tank' : 'Partial'}
+                </button>
+              ))}
             </div>
-            <div
-              role="switch"
-              aria-checked={form.fullTank}
-              className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ml-3 overflow-hidden ${
-                form.fullTank ? 'bg-ios-green' : 'bg-gray-300 dark:bg-zinc-600'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                  form.fullTank ? 'translate-x-[26px]' : 'translate-x-1'
-                }`}
-              />
-            </div>
-          </button>
+            <p className="text-xs text-ios-gray dark:text-gray-400 mt-1 px-1">
+              Full tank required for accurate fuel economy
+            </p>
+          </div>
 
           <FormField label="Notes">
             <Textarea

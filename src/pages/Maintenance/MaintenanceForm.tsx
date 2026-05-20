@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormField';
@@ -8,7 +7,6 @@ import {
   CATEGORY_LIST,
   type MaintenanceRecord,
   type MaintenanceCategory,
-  type PartUsed,
 } from '../../models';
 import { formatInputDate } from '../../utils/formatters';
 
@@ -29,7 +27,6 @@ interface FormState {
   date: string;
   odometer: number | '';
   notes: string;
-  parts: PartUsed[];
   laborCost: number | '';
   partsCost: number | '';
   tax: number | '';
@@ -47,7 +44,6 @@ function emptyForm(vehicleId: string, odo: number): FormState {
     date: formatInputDate(new Date()),
     odometer: odo || '',
     notes: '',
-    parts: [],
     laborCost: '',
     partsCost: '',
     tax: '',
@@ -80,7 +76,6 @@ export default function MaintenanceForm({
         date: formatInputDate(record.date),
         odometer: record.odometer,
         notes: record.notes ?? '',
-        parts: record.parts ?? [],
         laborCost: record.laborCost || '',
         partsCost: record.partsCost || '',
         tax: record.tax || '',
@@ -109,35 +104,6 @@ export default function MaintenanceForm({
     });
   };
 
-  const addPart = () =>
-    setForm((p) => ({ ...p, parts: [...p.parts, { name: '', cost: 0 }] }));
-
-  const updatePart = (i: number, key: keyof PartUsed, value: string | number) => {
-    setForm((p) => {
-      const parts = p.parts.map((pt, idx) => (idx === i ? { ...pt, [key]: value } : pt));
-      const partsCost = parts.reduce((s, pt) => s + (Number(pt.cost) || 0), 0);
-      return {
-        ...p,
-        parts,
-        partsCost: partsCost || '',
-        totalCost: calcTotal(p.laborCost, partsCost, p.tax),
-      };
-    });
-  };
-
-  const removePart = (i: number) => {
-    setForm((p) => {
-      const parts = p.parts.filter((_, idx) => idx !== i);
-      const partsCost = parts.reduce((s, pt) => s + (Number(pt.cost) || 0), 0);
-      return {
-        ...p,
-        parts,
-        partsCost: partsCost || '',
-        totalCost: calcTotal(p.laborCost, partsCost, p.tax),
-      };
-    });
-  };
-
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.title.trim()) errs.title = 'Title is required';
@@ -158,7 +124,7 @@ export default function MaintenanceForm({
         date: new Date(form.date),
         odometer: Number(form.odometer),
         notes: form.notes.trim() || undefined,
-        parts: form.parts.filter((p) => p.name.trim()),
+        parts: [],
         laborCost: Number(form.laborCost) || 0,
         partsCost: Number(form.partsCost) || 0,
         tax: Number(form.tax) || 0,
@@ -192,24 +158,23 @@ export default function MaintenanceForm({
             />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Date" error={errors.date} required>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => set('date', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Odometer (km)" error={errors.odometer} required>
-              <Input
-                type="number"
-                value={form.odometer}
-                onChange={(e) => set('odometer', e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="211000"
-                min={0}
-              />
-            </FormField>
-          </div>
+          <FormField label="Date" error={errors.date} required>
+            <Input
+              type="date"
+              value={form.date}
+              onChange={(e) => set('date', e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Odometer (km)" error={errors.odometer} required>
+            <Input
+              type="number"
+              value={form.odometer}
+              onChange={(e) => set('odometer', e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="211000"
+              min={0}
+            />
+          </FormField>
 
           <FormField label="Shop / Vendor">
             <Input
@@ -262,46 +227,6 @@ export default function MaintenanceForm({
                 ${form.totalCost.toFixed(2)}
               </span>
             </div>
-          </div>
-
-          {/* Parts used */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Parts Used</p>
-              <button
-                type="button"
-                onClick={addPart}
-                className="text-ios-blue text-sm font-medium flex items-center gap-1"
-              >
-                <Plus size={14} /> Add Part
-              </button>
-            </div>
-            {form.parts.map((part, i) => (
-              <div key={i} className="flex gap-2 mb-2 items-center">
-                <Input
-                  value={part.name}
-                  onChange={(e) => updatePart(i, 'name', e.target.value)}
-                  placeholder="Part name / description"
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  value={part.cost || ''}
-                  onChange={(e) => updatePart(i, 'cost', Number(e.target.value))}
-                  placeholder="$"
-                  className="w-20"
-                  min={0}
-                  step={0.01}
-                />
-                <button
-                  type="button"
-                  onClick={() => removePart(i)}
-                  className="text-ios-red p-1 flex-shrink-0"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
           </div>
 
           {/* Next due */}
