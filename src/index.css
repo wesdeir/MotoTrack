@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --nav-height: 56px;
+}
+
+/* Prevent iOS double-tap zoom */
+* {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: #F2F2F7;
+  color: #000;
+}
+
+body.dark {
+  background-color: #000;
+  color: #fff;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent inputs from zooming on iOS — min 16px */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* iOS-style list separator */
+.list-separator > * + * {
+  border-top: 1px solid;
+}
+
+/* Dark-mode aware separator */
+.separator {
+  @apply border-gray-200 dark:border-zinc-800;
+}
+
+/* Slide-up animation for modals */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease both;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #E5E5EA;
+  overflow: hidden;
+}
+
+.dark .progress-bar {
+  background: #3A3A3C;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Recharts dark mode text */
+.dark .recharts-text,
+.dark .recharts-cartesian-axis-tick-value {
+  fill: #98989F;
+}
+
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: #3A3A3C;
+}

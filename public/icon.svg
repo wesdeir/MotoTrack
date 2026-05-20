@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="114" fill="#007AFF"/>
+  <!-- Wrench -->
+  <g transform="translate(256,256)">
+    <path d="M60-120 c0-44.2-35.8-80-80-80 c-8.4,0-16.5,1.3-24.1,3.7 l42.1,42.1 c6.2,6.2,6.2,16.4,0,22.6 L-24-110 c-6.2,6.2-16.4,6.2-22.6,0 L-88.6-152 C-90.9-144.4-92-136.3-92-128 c0,44.2,35.8,80,80,80 c10.1,0,19.8-1.9,28.7-5.3 l92.4,92.4 c12.5,12.5,32.8,12.5,45.2,0 c12.5-12.5,12.5-32.8,0-45.2 L62-98.3 C61.3-105.5,60-112.6,60-120z" fill="white"/>
+  </g>
+  <!-- Speedometer arc -->
+  <path d="M150 320 A130 130 0 0 1 362 320" stroke="white" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <circle cx="256" cy="260" r="16" fill="white"/>
+  <line x1="256" y1="260" x2="300" y2="200" stroke="white" stroke-width="12" stroke-linecap="round"/>
+</svg>
