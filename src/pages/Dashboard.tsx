@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Wrench, Droplets } from 'lucide-react';
+import { ChevronRight, Wrench, Droplets, FolderOpen } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useFuel } from '../hooks/useFuel';
 import { useReminders } from '../hooks/useReminders';
+import { useDocuments } from '../hooks/useDocuments';
+import GloveBox from './GloveBox';
 import {
   calculateTotalMaintenanceSpend,
   getRecentRecords,
@@ -43,9 +45,28 @@ export default function Dashboard() {
     [maintenance, fuel, vehicle],
   );
   const lastFuel = fuel[0] ?? null;
+  const { documents } = useDocuments(vehicle?.id);
+
+  const thisYearSpend = useMemo(() => {
+    const year = new Date().getFullYear();
+    const mSpend = maintenance
+      .filter((r) => new Date(r.date).getFullYear() === year)
+      .reduce((s, r) => s + r.totalCost, 0);
+    const fSpend = fuel
+      .filter((r) => new Date(r.date).getFullYear() === year)
+      .reduce((s, r) => s + r.totalCost, 0);
+    return mSpend + fSpend;
+  }, [maintenance, fuel]);
+
+  const nextDueReminder = reminders[0] ?? null;
+  const hasExpiringDoc = documents.some((d) => {
+    if (!d.expiresAt) return false;
+    return (d.expiresAt.getTime() - Date.now()) / 86400000 <= 30;
+  });
 
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
   const [fuelFormOpen, setFuelFormOpen] = useState(false);
+  const [gloveBoxOpen, setGloveBoxOpen] = useState(false);
 
   if (vehicle === undefined) {
     return (
@@ -100,6 +121,35 @@ export default function Dashboard() {
               {formatOdometer(vehicle.currentOdometer)}
             </p>
           </div>
+        </div>
+
+        {/* Card detail rows */}
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.08] space-y-2">
+          {thisYearSpend > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ios-gray dark:text-gray-400">This year</span>
+              <span className="text-xs font-semibold text-black dark:text-white">{formatCurrency(thisYearSpend)}</span>
+            </div>
+          )}
+          {nextDueReminder && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ios-gray dark:text-gray-400">Next due</span>
+              <span className="text-xs font-semibold text-black dark:text-white truncate ml-4 text-right">{nextDueReminder.title}</span>
+            </div>
+          )}
+          <button
+            onClick={() => setGloveBoxOpen(true)}
+            className="flex items-center justify-between w-full active:opacity-70"
+          >
+            <span className="flex items-center gap-1.5 text-xs text-ios-gray dark:text-gray-400">
+              <FolderOpen size={12} />
+              Documents
+              {hasExpiringDoc && <span className="w-1.5 h-1.5 rounded-full bg-ios-orange" />}
+            </span>
+            <span className="text-xs font-semibold text-ios-blue">
+              {documents.length > 0 ? `${documents.length} file${documents.length !== 1 ? 's' : ''}` : 'Add'}
+            </span>
+          </button>
         </div>
       </Card>
 
@@ -239,6 +289,9 @@ export default function Dashboard() {
         onDelete={async () => { setFuelFormOpen(false); }}
         onClose={() => setFuelFormOpen(false)}
       />
+      {gloveBoxOpen && (
+        <GloveBox vehicleId={vehicle.id} onClose={() => setGloveBoxOpen(false)} />
+      )}
     </div>
   );
 }

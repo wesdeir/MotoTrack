@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
-  ChevronRight, Check, Plus, PencilLine, FileText,
+  ChevronRight, Check, Plus, PencilLine, FileText, Loader2,
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
@@ -9,7 +9,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { db } from '../db/database';
 import { clearAndReseed } from '../db/seed';
-import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder } from '../models';
+import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument } from '../models';
+import { decodeVin } from '../utils/vinDecoder';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -78,6 +79,7 @@ export default function SettingsPage() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmReseed, setConfirmReseed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [decoding, setDecoding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
@@ -180,6 +182,29 @@ export default function SettingsPage() {
     showToast('Vehicle deleted');
   };
 
+  const handleDecodeVin = async () => {
+    if (form.vin.length < 17) return;
+    setDecoding(true);
+    try {
+      const result = await decodeVin(form.vin);
+      if (result) {
+        setForm((p) => ({
+          ...p,
+          make: result.make,
+          model: result.model,
+          year: result.year,
+          trim: result.trim ?? p.trim,
+          engine: result.engine ?? p.engine,
+        }));
+        showToast('Vehicle details filled from VIN');
+      } else {
+        showToast('VIN not found — fill in manually');
+      }
+    } finally {
+      setDecoding(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     if (!vehicle) return;
     try {
@@ -190,13 +215,14 @@ export default function SettingsPage() {
   };
 
   const handleExport = async () => {
-    const [vehicles, maintenanceRecords, fuelRecords, reminders] = await Promise.all([
+    const [vehicles, maintenanceRecords, fuelRecords, reminders, documents] = await Promise.all([
       db.vehicles.toArray(),
       db.maintenanceRecords.toArray(),
       db.fuelRecords.toArray(),
       db.reminders.toArray(),
+      db.documents.toArray(),
     ]);
-    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders }, null, 2);
+    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders, documents }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -217,12 +243,14 @@ export default function SettingsPage() {
         maintenanceRecords?: unknown[];
         fuelRecords?: unknown[];
         reminders?: unknown[];
+        documents?: unknown[];
       };
-      await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, async () => {
+      await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, async () => {
         if (parsed.vehicles?.length) await db.vehicles.bulkPut(parsed.vehicles);
         if (parsed.maintenanceRecords?.length) await db.maintenanceRecords.bulkPut(parsed.maintenanceRecords as MaintenanceRecord[]);
         if (parsed.fuelRecords?.length) await db.fuelRecords.bulkPut(parsed.fuelRecords as FuelRecord[]);
         if (parsed.reminders?.length) await db.reminders.bulkPut(parsed.reminders as Reminder[]);
+        if (parsed.documents?.length) await db.documents.bulkPut(parsed.documents as VehicleDocument[]);
       });
       showToast('Data imported successfully');
     } catch {
@@ -243,6 +271,7 @@ export default function SettingsPage() {
       db.maintenanceRecords.clear(),
       db.fuelRecords.clear(),
       db.reminders.clear(),
+      db.documents.clear(),
     ]);
     setConfirmClear(false);
     showToast('All data cleared');
@@ -336,6 +365,25 @@ export default function SettingsPage() {
                     />
                   </FormField>
                 </div>
+                <FormField label="VIN">
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.vin}
+                      onChange={(e) => setField('vin', e.target.value.toUpperCase())}
+                      placeholder="1HGEM22952L000001"
+                      className="flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDecodeVin}
+                      disabled={form.vin.length < 17 || decoding}
+                      className="px-3 py-2 rounded-xl bg-ios-blue text-white text-sm font-semibold disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5"
+                    >
+                      {decoding ? <Loader2 size={14} className="animate-spin" /> : null}
+                      Decode
+                    </button>
+                  </div>
+                </FormField>
                 <FormField label="Odometer (km)" error={formErrors.currentOdometer} required>
                   <Input
                     type="number"

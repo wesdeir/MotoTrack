@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import type { ReminderWithStatus } from '../../models';
 import { StatusBadge } from '../ui/Badge';
 import { formatKm, formatDate } from '../../utils/formatters';
@@ -17,12 +17,12 @@ function buildSubtext(r: ReminderWithStatus): string | null {
     if (r.kmUntilDue == null) return null;
     if (r.kmUntilDue <= 0) {
       const est = r.estimatedDueDate
-        ? ` · est. ${formatDistanceToNow(r.estimatedDueDate, { addSuffix: false })} ago`
+        ? ` · was due ${format(r.estimatedDueDate, 'MMM d')}`
         : '';
       return `${formatKm(-r.kmUntilDue)} overdue${est}`;
     }
     const est = r.estimatedDueDate
-      ? ` · est. ${formatDistanceToNow(r.estimatedDueDate, { addSuffix: true })}`
+      ? ` · est. ${format(r.estimatedDueDate, 'MMM d, yyyy')}`
       : '';
     return `${formatKm(r.kmUntilDue)} remaining${est}`;
   }

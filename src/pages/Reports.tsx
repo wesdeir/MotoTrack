@@ -19,6 +19,7 @@ import {
   calculateTotalFuelSpend,
   getFuelEconomyByMonth,
   getMonthlyFuelSpend,
+  detectEconomyAnomalies,
 } from '../utils/fuelCalc';
 import { calculateCostPerKm } from '../utils/costOfOwnership';
 import {
@@ -49,6 +50,11 @@ export default function ReportsPage() {
   const costPerKm = useMemo(
     () => vehicle ? calculateCostPerKm(maintenance, fuel, vehicle.currentOdometer) : null,
     [maintenance, fuel, vehicle],
+  );
+  const anomalyIds = useMemo(() => detectEconomyAnomalies(fuel), [fuel]);
+  const recentAnomalyCount = useMemo(
+    () => fuel.slice(0, 5).filter((r) => anomalyIds.has(r.id)).length,
+    [fuel, anomalyIds],
   );
   const mostExpensive = useMemo(() => getMostExpensiveRepair(maintenance), [maintenance]);
   const lastOilChange = useMemo(() => getLastServiceByCategory(maintenance, 'oil-change'), [maintenance]);
@@ -200,6 +206,21 @@ export default function ReportsPage() {
             accent="blue"
           />
         </div>
+
+        {/* Fuel efficiency insight */}
+        {recentAnomalyCount > 0 && fuel.length >= 5 && (
+          <Card>
+            <p className="text-[11px] font-semibold text-ios-orange uppercase tracking-wide mb-1">
+              Fuel Efficiency Notice
+            </p>
+            <p className="text-[15px] font-semibold text-black dark:text-white">
+              {recentAnomalyCount === 1 ? '1 recent fill-up' : `${recentAnomalyCount} recent fill-ups`} above average
+            </p>
+            <p className="text-xs text-ios-gray dark:text-gray-400 mt-1">
+              Higher than normal fuel consumption detected. Check tire pressure, air filter, or driving patterns.
+            </p>
+          </Card>
+        )}
 
         {/* Highlight cards */}
         {mostExpensive && (

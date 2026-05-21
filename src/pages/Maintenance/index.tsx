@@ -6,7 +6,7 @@ import { useMaintenance } from '../../hooks/useMaintenance';
 import { useFuel } from '../../hooks/useFuel';
 import { useReminders } from '../../hooks/useReminders';
 import { calculateAvgKmPerDay } from '../../utils/fuelCalc';
-import { CATEGORY_LIST, type MaintenanceCategory, type MaintenanceRecord } from '../../models';
+import { CATEGORY_LIST, type MaintenanceCategory, type MaintenanceRecord, type ReminderWithStatus } from '../../models';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
@@ -14,6 +14,7 @@ import Button from '../../components/ui/Button';
 import MaintenanceItem from '../../components/features/MaintenanceItem';
 import ReminderCard from '../../components/features/ReminderCard';
 import ReminderSuggestion, { getDefaultInterval } from '../../components/features/ReminderSuggestion';
+import ReminderForm from '../../components/features/ReminderForm';
 import MaintenanceForm from './MaintenanceForm';
 import TimelineView from './TimelineView';
 
@@ -23,7 +24,7 @@ export default function MaintenancePage() {
   const { records: fuel } = useFuel(vehicle?.id);
 
   const avgKmPerDay = useMemo(() => calculateAvgKmPerDay(fuel), [fuel]);
-  const { reminders, addReminder, updateReminder } = useReminders(
+  const { reminders, addReminder, updateReminder, deleteReminder } = useReminders(
     vehicle?.id,
     vehicle?.currentOdometer ?? 0,
     avgKmPerDay,
@@ -35,6 +36,9 @@ export default function MaintenancePage() {
   const [tab, setTab] = useState<'log' | 'timeline' | 'reminders'>('log');
   const [viewingReceipt, setViewingReceipt] = useState<MaintenanceRecord | null>(null);
   const [search, setSearch] = useState('');
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState<ReminderWithStatus | null>(null);
+
   const [pendingSuggestion, setPendingSuggestion] = useState<{
     category: MaintenanceCategory;
     title: string;
@@ -72,6 +76,22 @@ export default function MaintenancePage() {
 
   const openNew = () => { setSelected(null); setFormOpen(true); };
   const openEdit = (r: MaintenanceRecord) => { setSelected(r); setFormOpen(true); };
+  const openNewReminder = () => { setSelectedReminder(null); setReminderFormOpen(true); };
+  const openEditReminder = (r: ReminderWithStatus) => { setSelectedReminder(r); setReminderFormOpen(true); };
+
+  const handleSaveReminder = async (data: Parameters<typeof addReminder>[0]) => {
+    if (selectedReminder) {
+      await updateReminder(selectedReminder.id, data);
+    } else {
+      await addReminder(data);
+    }
+    setReminderFormOpen(false);
+  };
+
+  const handleDeleteReminder = async () => {
+    if (selectedReminder) await deleteReminder(selectedReminder.id);
+    setReminderFormOpen(false);
+  };
 
   const handleSave = async (data: Parameters<typeof addRecord>[0]) => {
     if (selected) {
@@ -127,7 +147,7 @@ export default function MaintenancePage() {
         title="Maintenance"
         subtitle={`${records.length} record${records.length !== 1 ? 's' : ''}`}
         action={
-          <Button onClick={openNew} size="sm">
+          <Button onClick={tab === 'reminders' ? openNewReminder : openNew} size="sm">
             <Plus size={16} className="mr-1" />
             Add
           </Button>
@@ -259,13 +279,14 @@ export default function MaintenancePage() {
             <EmptyState
               icon={Wrench}
               title="No reminders"
-              description="Reminders are added automatically when you log a service with a next-due date or km."
+              description="Add a reminder to track when any service is due, or log a service with a next-due date."
+              action={{ label: 'Add Reminder', onClick: openNewReminder }}
             />
           ) : (
             <Card padding={false}>
               <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                 {reminders.map((r) => (
-                  <ReminderCard key={r.id} reminder={r} />
+                  <ReminderCard key={r.id} reminder={r} onClick={() => openEditReminder(r)} />
                 ))}
               </div>
             </Card>
@@ -292,6 +313,16 @@ export default function MaintenancePage() {
           onSkip={() => setPendingSuggestion(null)}
         />
       )}
+
+      <ReminderForm
+        isOpen={reminderFormOpen}
+        reminder={selectedReminder}
+        vehicleId={vehicle?.id ?? ''}
+        currentOdometer={vehicle?.currentOdometer ?? 0}
+        onSave={handleSaveReminder}
+        onDelete={handleDeleteReminder}
+        onClose={() => setReminderFormOpen(false)}
+      />
 
       {viewingReceipt?.receiptImage && (
         <ReceiptViewer

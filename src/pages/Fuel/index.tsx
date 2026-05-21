@@ -5,6 +5,7 @@ import { useFuel } from '../../hooks/useFuel';
 import {
   calculateAverageFuelEconomy,
   calculateTotalFuelSpend,
+  detectEconomyAnomalies,
 } from '../../utils/fuelCalc';
 import { formatCurrency } from '../../utils/formatters';
 import PageHeader from '../../components/ui/PageHeader';
@@ -25,6 +26,7 @@ export default function FuelPage() {
 
   const avgEconomy = useMemo(() => calculateAverageFuelEconomy(records), [records]);
   const totalSpend = useMemo(() => calculateTotalFuelSpend(records), [records]);
+  const anomalyIds = useMemo(() => detectEconomyAnomalies(records), [records]);
   const lastFull = useMemo(
     () => records.find((r) => r.lPer100km != null) ?? null,
     [records],
@@ -106,7 +108,7 @@ export default function FuelPage() {
           <Card padding={false}>
             <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
               {records.map((r) => (
-                <FuelItem key={r.id} record={r} onClick={() => openEdit(r)} />
+                <FuelItem key={r.id} record={r} onClick={() => openEdit(r)} isAnomaly={anomalyIds.has(r.id)} />
               ))}
             </div>
           </Card>

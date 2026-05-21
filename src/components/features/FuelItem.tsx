@@ -5,9 +5,10 @@ import { formatDate, formatOdometer, formatCurrency, formatLitres } from '../../
 interface FuelItemProps {
   record: FuelRecord;
   onClick?: () => void;
+  isAnomaly?: boolean;
 }
 
-export default function FuelItem({ record, onClick }: FuelItemProps) {
+export default function FuelItem({ record, onClick, isAnomaly }: FuelItemProps) {
   return (
     <button
       onClick={onClick}
@@ -28,13 +29,18 @@ export default function FuelItem({ record, onClick }: FuelItemProps) {
           {record.pricePerLitre ? ` · $${record.pricePerLitre.toFixed(3)}/L` : ''}
         </p>
       </div>
-      <div className="flex-shrink-0 flex items-center gap-1">
+      <div className="flex-shrink-0 flex items-center gap-1.5">
         {record.lPer100km != null ? (
           <span className="text-sm font-semibold text-ios-blue">
             {record.lPer100km.toFixed(1)}L/100
           </span>
         ) : (
           <span className="text-xs text-ios-gray dark:text-gray-500">—</span>
+        )}
+        {isAnomaly && (
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-400/20 dark:text-amber-400">
+            ↑
+          </span>
         )}
         <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
       </div>

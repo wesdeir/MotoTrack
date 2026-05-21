@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Trash2, Plus } from 'lucide-react';
 import { formatInputDate } from '../../utils/formatters';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
@@ -8,6 +9,7 @@ import ReceiptUpload from '../../components/ui/ReceiptUpload';
 import {
   type MaintenanceRecord,
   type MaintenanceCategory,
+  type PartUsed,
 } from '../../models';
 
 interface ServicePreset {
@@ -80,6 +82,7 @@ interface FormState {
   nextDueDate: string;
   receiptImage: string | undefined;
   receiptFileName: string | undefined;
+  parts: PartUsed[];
 }
 
 function emptyForm(vehicleId: string, odo: number): FormState {
@@ -99,6 +102,7 @@ function emptyForm(vehicleId: string, odo: number): FormState {
     nextDueDate: '',
     receiptImage: undefined,
     receiptFileName: undefined,
+    parts: [],
   };
 }
 
@@ -137,6 +141,7 @@ export default function MaintenanceForm({
         nextDueDate: record.nextDueDate ? formatInputDate(record.nextDueDate) : '',
         receiptImage: record.receiptImage,
         receiptFileName: record.receiptFileName,
+        parts: record.parts ?? [],
       });
     } else {
       setSelectedPreset(null);
@@ -170,6 +175,32 @@ export default function MaintenanceForm({
     });
   };
 
+  const addPart = () => {
+    setForm((p) => {
+      const parts = [...p.parts, { name: '', cost: 0 }];
+      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
+      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
+    });
+  };
+
+  const removePart = (i: number) => {
+    setForm((p) => {
+      const parts = p.parts.filter((_, idx) => idx !== i);
+      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
+      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
+    });
+  };
+
+  const updatePart = (i: number, field: keyof PartUsed, value: string | number) => {
+    setForm((p) => {
+      const parts = p.parts.map((pt, idx) =>
+        idx === i ? { ...pt, [field]: field === 'cost' ? Number(value) || 0 : value } : pt,
+      );
+      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
+      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
+    });
+  };
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.title.trim()) errs.title = 'Title is required';
@@ -190,7 +221,7 @@ export default function MaintenanceForm({
         date: new Date(form.date),
         odometer: Number(form.odometer),
         notes: form.notes.trim() || undefined,
-        parts: [],
+        parts: form.parts.filter((p) => p.name.trim()),
         laborCost: Number(form.laborCost) || 0,
         partsCost: Number(form.partsCost) || 0,
         tax: Number(form.tax) || 0,
@@ -296,7 +327,7 @@ export default function MaintenanceForm({
                   step={0.01}
                 />
               </FormField>
-              <FormField label="Parts">
+              <FormField label="Parts" hint={form.parts.length > 0 ? 'from list' : undefined}>
                 <Input
                   type="number"
                   value={form.partsCost}
@@ -304,6 +335,7 @@ export default function MaintenanceForm({
                   placeholder="0"
                   min={0}
                   step={0.01}
+                  disabled={form.parts.length > 0}
                 />
               </FormField>
               <FormField label="Tax">
@@ -352,6 +384,56 @@ export default function MaintenanceForm({
               placeholder="Additional notes about this service…"
             />
           </FormField>
+
+          {/* Parts Used */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Parts Used</p>
+              <button
+                type="button"
+                onClick={addPart}
+                className="flex items-center gap-1 text-xs font-semibold text-ios-blue"
+              >
+                <Plus size={13} /> Add Part
+              </button>
+            </div>
+            {form.parts.length > 0 && (
+              <div className="space-y-2 mb-2">
+                {form.parts.map((part, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <Input
+                      value={part.name}
+                      onChange={(e) => updatePart(i, 'name', e.target.value)}
+                      placeholder="Part name"
+                      className="flex-1 !py-2 text-sm"
+                    />
+                    <Input
+                      type="number"
+                      value={part.cost || ''}
+                      onChange={(e) => updatePart(i, 'cost', e.target.value)}
+                      placeholder="$0"
+                      className="w-20 !py-2 text-sm"
+                      min={0}
+                      step={0.01}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePart(i)}
+                      className="p-2 text-ios-red flex-shrink-0"
+                      aria-label="Remove part"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {form.parts.length === 0 && (
+              <p className="text-xs text-ios-gray dark:text-gray-500">
+                Add individual parts to auto-calculate the parts cost.
+              </p>
+            )}
+          </div>
 
           <FormField label="Receipt">
             <ReceiptUpload

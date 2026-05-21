@@ -127,6 +127,18 @@ export interface Reminder {
   updatedAt: Date;
 }
 
+export interface VehicleDocument {
+  id: string;
+  vehicleId: string;
+  type: 'insurance' | 'registration' | 'warranty' | 'other';
+  title: string;
+  imageData: string;
+  fileName?: string;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ReminderWithStatus extends Reminder {
   status: ReminderStatus;
   kmUntilDue?: number;

@@ -111,6 +111,24 @@ export function getMonthlyFuelSpend(
     .map(([month, spend]) => ({ month, spend }));
 }
 
+export function detectEconomyAnomalies(records: FuelRecord[]): Set<string> {
+  const anomalies = new Set<string>();
+  const valid = records
+    .filter((r) => r.lPer100km != null && r.fullTank)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  for (let i = 1; i < valid.length; i++) {
+    const trailing = valid.slice(Math.max(0, i - 5), i);
+    if (trailing.length < 2) continue;
+    const avg = trailing.reduce((s, r) => s + r.lPer100km!, 0) / trailing.length;
+    if (valid[i].lPer100km! > avg * 1.15) {
+      anomalies.add(valid[i].id);
+    }
+  }
+
+  return anomalies;
+}
+
 export function getFuelEconomyByMonth(
   records: FuelRecord[],
 ): { month: string; lPer100km: number }[] {
