@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Droplets, Wrench } from 'lucide-react';
+import { Droplets, Wrench, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import type { MaintenanceRecord, FuelRecord } from '../../models';
 import {
@@ -45,9 +45,10 @@ interface RowProps {
   entry: TimelineEntry;
   isLast: boolean;
   onEditMaintenance: (r: MaintenanceRecord) => void;
+  onViewReceipt?: (r: MaintenanceRecord) => void;
 }
 
-function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
+function TimelineRow({ entry, isLast, onEditMaintenance, onViewReceipt }: RowProps) {
   const isMaintenance = entry.type === 'maintenance';
 
   const dot = isMaintenance ? (
@@ -75,11 +76,22 @@ function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
             {entry.record.shop ? ` · ${entry.record.shop}` : ''}
           </p>
         </div>
-        {entry.record.totalCost > 0 && (
-          <span className="text-[13px] font-semibold text-black dark:text-white flex-shrink-0 mt-0.5">
-            {formatCurrency(entry.record.totalCost)}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+          {entry.record.totalCost > 0 && (
+            <span className="text-[13px] font-semibold text-black dark:text-white">
+              {formatCurrency(entry.record.totalCost)}
+            </span>
+          )}
+          {entry.record.receiptImage && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewReceipt?.(entry.record); }}
+              className="p-1 -mr-1"
+              aria-label="View receipt"
+            >
+              <Paperclip size={13} className="text-ios-blue" />
+            </button>
+          )}
+        </div>
       </div>
     </button>
   ) : (
@@ -132,12 +144,14 @@ interface TimelineViewProps {
   maintenanceRecords: MaintenanceRecord[];
   fuelRecords: FuelRecord[];
   onEditMaintenance: (r: MaintenanceRecord) => void;
+  onViewReceipt?: (r: MaintenanceRecord) => void;
 }
 
 export default function TimelineView({
   maintenanceRecords,
   fuelRecords,
   onEditMaintenance,
+  onViewReceipt,
 }: TimelineViewProps) {
   const groups: MonthGroup[] = useMemo(() => {
     // Merge both record types into a single discriminated array
@@ -208,6 +222,7 @@ export default function TimelineView({
               entry={entry}
               isLast={i === group.entries.length - 1}
               onEditMaintenance={onEditMaintenance}
+              onViewReceipt={onViewReceipt}
             />
           ))}
         </div>

@@ -69,6 +69,7 @@ export interface MaintenanceRecord {
   totalCost: number;
   shop?: string;
   receiptImage?: string;
+  receiptFileName?: string;
   nextDueKm?: number;
   nextDueDate?: Date;
   createdAt: Date;

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
-  ChevronRight, Check, Plus, PencilLine,
+  ChevronRight, Check, Plus, PencilLine, FileText,
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
+import { useMaintenance } from '../hooks/useMaintenance';
 import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { db } from '../db/database';
@@ -15,6 +16,7 @@ import Button from '../components/ui/Button';
 import { FormField, Input, Select } from '../components/ui/FormField';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { formatInputDate } from '../utils/formatters';
+import { exportServiceHistoryPDF } from '../utils/pdfExport';
 
 function reviveDates(_key: string, value: unknown): unknown {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
@@ -63,6 +65,7 @@ function vehicleToForm(v: Vehicle): VehicleForm {
 
 export default function SettingsPage() {
   const { vehicle, allVehicles, activeId, switchVehicle, addVehicle, updateVehicle, deleteVehicle } = useVehicle();
+  const { records: maintenanceRecords } = useMaintenance(vehicle?.id);
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
 
@@ -175,6 +178,15 @@ export default function SettingsPage() {
     await deleteVehicle(id);
     closeForm();
     showToast('Vehicle deleted');
+  };
+
+  const handleExportPDF = async () => {
+    if (!vehicle) return;
+    try {
+      await exportServiceHistoryPDF(vehicle, maintenanceRecords ?? []);
+    } catch {
+      showToast('PDF export failed');
+    }
   };
 
   const handleExport = async () => {
@@ -531,6 +543,31 @@ export default function SettingsPage() {
                 <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
               </button>
             </div>
+          </Card>
+        </section>
+
+        {/* Service History */}
+        <section>
+          <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide px-1 mb-2">
+            Service History
+          </p>
+          <Card padding={false}>
+            <button
+              onClick={handleExportPDF}
+              disabled={!vehicle}
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left disabled:opacity-40"
+            >
+              <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-400/10 flex items-center justify-center flex-shrink-0">
+                <FileText size={18} className="text-red-500 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[15px] font-medium text-black dark:text-white">Export as PDF</p>
+                <p className="text-xs text-ios-gray dark:text-gray-400">
+                  Share a formatted service history report
+                </p>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
+            </button>
           </Card>
         </section>
 

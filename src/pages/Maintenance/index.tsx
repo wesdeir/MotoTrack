@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Wrench } from 'lucide-react';
+import ReceiptViewer from '../../components/ui/ReceiptViewer';
 import { useVehicle } from '../../hooks/useVehicle';
 import { useMaintenance } from '../../hooks/useMaintenance';
 import { useFuel } from '../../hooks/useFuel';
@@ -27,6 +28,7 @@ export default function MaintenancePage() {
   const [selected, setSelected] = useState<MaintenanceRecord | null>(null);
   const [filter, setFilter] = useState<MaintenanceCategory | 'all'>('all');
   const [tab, setTab] = useState<'log' | 'timeline' | 'reminders'>('log');
+  const [viewingReceipt, setViewingReceipt] = useState<MaintenanceRecord | null>(null);
 
   const filtered = useMemo(
     () => (filter === 'all' ? records : records.filter((r) => r.category === filter)),
@@ -97,6 +99,7 @@ export default function MaintenancePage() {
             maintenanceRecords={records}
             fuelRecords={fuel}
             onEditMaintenance={openEdit}
+            onViewReceipt={(r) => setViewingReceipt(r)}
           />
         </div>
       ) : tab === 'log' ? (
@@ -144,7 +147,12 @@ export default function MaintenancePage() {
               <Card padding={false}>
                 <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                   {filtered.map((r) => (
-                    <MaintenanceItem key={r.id} record={r} onClick={() => openEdit(r)} />
+                    <MaintenanceItem
+                      key={r.id}
+                      record={r}
+                      onClick={() => openEdit(r)}
+                      onViewReceipt={() => setViewingReceipt(r)}
+                    />
                   ))}
                 </div>
               </Card>
@@ -180,6 +188,14 @@ export default function MaintenancePage() {
         onDelete={handleDelete}
         onClose={() => setFormOpen(false)}
       />
+
+      {viewingReceipt?.receiptImage && (
+        <ReceiptViewer
+          dataUrl={viewingReceipt.receiptImage}
+          fileName={viewingReceipt.receiptFileName}
+          onClose={() => setViewingReceipt(null)}
+        />
+      )}
     </div>
   );
 }

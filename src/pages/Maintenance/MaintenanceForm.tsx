@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Textarea } from '../../components/ui/FormField';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import ReceiptUpload from '../../components/ui/ReceiptUpload';
 import {
   type MaintenanceRecord,
   type MaintenanceCategory,
@@ -77,6 +78,8 @@ interface FormState {
   shop: string;
   nextDueKm: number | '';
   nextDueDate: string;
+  receiptImage: string | undefined;
+  receiptFileName: string | undefined;
 }
 
 function emptyForm(vehicleId: string, odo: number): FormState {
@@ -94,6 +97,8 @@ function emptyForm(vehicleId: string, odo: number): FormState {
     shop: '',
     nextDueKm: '',
     nextDueDate: '',
+    receiptImage: undefined,
+    receiptFileName: undefined,
   };
 }
 
@@ -130,6 +135,8 @@ export default function MaintenanceForm({
         shop: record.shop ?? '',
         nextDueKm: record.nextDueKm ?? '',
         nextDueDate: record.nextDueDate ? formatInputDate(record.nextDueDate) : '',
+        receiptImage: record.receiptImage,
+        receiptFileName: record.receiptFileName,
       });
     } else {
       setSelectedPreset(null);
@@ -191,6 +198,8 @@ export default function MaintenanceForm({
         shop: form.shop.trim() || undefined,
         nextDueKm: form.nextDueKm !== '' ? Number(form.nextDueKm) : undefined,
         nextDueDate: form.nextDueDate ? new Date(form.nextDueDate) : undefined,
+        receiptImage: form.receiptImage,
+        receiptFileName: form.receiptFileName,
       });
     } finally {
       setSaving(false);
@@ -341,6 +350,19 @@ export default function MaintenanceForm({
               value={form.notes}
               onChange={(e) => set('notes', e.target.value)}
               placeholder="Additional notes about this service…"
+            />
+          </FormField>
+
+          <FormField label="Receipt">
+            <ReceiptUpload
+              value={form.receiptImage}
+              fileName={form.receiptFileName}
+              onChange={(dataUrl, name) =>
+                setForm((p) => ({ ...p, receiptImage: dataUrl, receiptFileName: name }))
+              }
+              onRemove={() =>
+                setForm((p) => ({ ...p, receiptImage: undefined, receiptFileName: undefined }))
+              }
             />
           </FormField>
 

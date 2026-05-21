@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Paperclip } from 'lucide-react';
 import type { MaintenanceRecord } from '../../models';
 import { formatDate, formatOdometer, formatCurrency } from '../../utils/formatters';
 import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
@@ -6,9 +6,10 @@ import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
 interface MaintenanceItemProps {
   record: MaintenanceRecord;
   onClick?: () => void;
+  onViewReceipt?: () => void;
 }
 
-export default function MaintenanceItem({ record, onClick }: MaintenanceItemProps) {
+export default function MaintenanceItem({ record, onClick, onViewReceipt }: MaintenanceItemProps) {
   return (
     <button
       onClick={onClick}
@@ -26,10 +27,19 @@ export default function MaintenanceItem({ record, onClick }: MaintenanceItemProp
           {record.shop ? ` · ${record.shop}` : ''}
         </p>
       </div>
-      <div className="flex-shrink-0 flex items-center gap-1">
+      <div className="flex-shrink-0 flex items-center gap-1.5">
         <span className="text-[15px] font-semibold text-black dark:text-white">
           {formatCurrency(record.totalCost)}
         </span>
+        {record.receiptImage && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onViewReceipt?.(); }}
+            className="p-1 -mr-1"
+            aria-label="View receipt"
+          >
+            <Paperclip size={14} className="text-ios-blue" />
+          </button>
+        )}
         <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
       </div>
     </button>
