@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Wrench, Droplets } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
@@ -11,10 +11,10 @@ import {
   getRecentRecords,
 } from '../utils/maintenanceCalc';
 import {
-  calculateAverageFuelEconomy,
   calculateAvgKmPerDay,
   calculateTotalFuelSpend,
 } from '../utils/fuelCalc';
+import { calculateCostPerKm } from '../utils/costOfOwnership';
 import { getUrgentReminders } from '../utils/reminderLogic';
 import { formatOdometer, formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/ui/Card';
@@ -22,11 +22,13 @@ import StatCard from '../components/ui/StatCard';
 import ReminderCard from '../components/features/ReminderCard';
 import MaintenanceItem from '../components/features/MaintenanceItem';
 import FuelItem from '../components/features/FuelItem';
+import MaintenanceForm from './Maintenance/MaintenanceForm';
+import FuelForm from './Fuel/FuelForm';
 
 export default function Dashboard() {
   const { vehicle } = useVehicle();
-  const { records: maintenance } = useMaintenance(vehicle?.id);
-  const { records: fuel } = useFuel(vehicle?.id);
+  const { records: maintenance, addRecord: addMaintenanceRecord } = useMaintenance(vehicle?.id);
+  const { records: fuel, addRecord: addFuelRecord } = useFuel(vehicle?.id);
 
   const avgKmPerDay = useMemo(() => calculateAvgKmPerDay(fuel), [fuel]);
   const { reminders } = useReminders(vehicle?.id, vehicle?.currentOdometer ?? 0, avgKmPerDay);
@@ -34,10 +36,16 @@ export default function Dashboard() {
   const urgentReminders = useMemo(() => getUrgentReminders(reminders), [reminders]);
   const recentMaintenance = useMemo(() => getRecentRecords(maintenance, 3), [maintenance]);
   const recentFuel = useMemo(() => fuel.slice(0, 3), [fuel]);
-  const avgEconomy = useMemo(() => calculateAverageFuelEconomy(fuel), [fuel]);
   const totalMainSpend = useMemo(() => calculateTotalMaintenanceSpend(maintenance), [maintenance]);
   const totalFuelSpend = useMemo(() => calculateTotalFuelSpend(fuel), [fuel]);
+  const costPerKm = useMemo(
+    () => vehicle ? calculateCostPerKm(maintenance, fuel, vehicle.currentOdometer) : null,
+    [maintenance, fuel, vehicle],
+  );
   const lastFuel = fuel[0] ?? null;
+
+  const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [fuelFormOpen, setFuelFormOpen] = useState(false);
 
   if (vehicle === undefined) {
     return (
@@ -95,6 +103,26 @@ export default function Dashboard() {
         </div>
       </Card>
 
+      {/* Quick Actions */}
+      <div className="flex gap-3">
+        <Button
+          variant="secondary"
+          className="flex-1"
+          onClick={() => setServiceFormOpen(true)}
+        >
+          <Wrench size={15} className="mr-1.5 text-ios-blue" />
+          Log Service
+        </Button>
+        <Button
+          variant="secondary"
+          className="flex-1"
+          onClick={() => setFuelFormOpen(true)}
+        >
+          <Droplets size={15} className="mr-1.5 text-ios-green" />
+          Add Fuel
+        </Button>
+      </div>
+
       {/* Action needed */}
       {urgentReminders.length > 0 && (
         <section>
@@ -136,9 +164,9 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <StatCard
-          label="Avg Fuel Economy"
-          value={avgEconomy != null ? `${avgEconomy.toFixed(1)}` : '—'}
-          subValue="L / 100 km"
+          label="Cost / km"
+          value={costPerKm != null ? `$${costPerKm.toFixed(2)}` : '—'}
+          subValue={costPerKm != null ? 'all costs' : 'need 2+ fill-ups'}
           accent="blue"
         />
         <StatCard
@@ -192,6 +220,25 @@ export default function Dashboard() {
           </Card>
         </section>
       )}
+
+      <MaintenanceForm
+        isOpen={serviceFormOpen}
+        record={null}
+        vehicleId={vehicle.id}
+        currentOdometer={vehicle.currentOdometer}
+        onSave={async (data) => { await addMaintenanceRecord(data); setServiceFormOpen(false); }}
+        onDelete={async () => { setServiceFormOpen(false); }}
+        onClose={() => setServiceFormOpen(false)}
+      />
+      <FuelForm
+        isOpen={fuelFormOpen}
+        record={null}
+        vehicleId={vehicle.id}
+        currentOdometer={vehicle.currentOdometer}
+        onSave={async (data) => { await addFuelRecord(data); setFuelFormOpen(false); }}
+        onDelete={async () => { setFuelFormOpen(false); }}
+        onClose={() => setFuelFormOpen(false)}
+      />
     </div>
   );
 }

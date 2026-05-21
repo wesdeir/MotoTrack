@@ -20,6 +20,7 @@ import {
   getFuelEconomyByMonth,
   getMonthlyFuelSpend,
 } from '../utils/fuelCalc';
+import { calculateCostPerKm } from '../utils/costOfOwnership';
 import {
   formatCurrency,
   formatDate,
@@ -45,6 +46,10 @@ export default function ReportsPage() {
   const totalMaint = useMemo(() => calculateTotalMaintenanceSpend(maintenance), [maintenance]);
   const totalFuel = useMemo(() => calculateTotalFuelSpend(fuel), [fuel]);
   const avgEconomy = useMemo(() => calculateAverageFuelEconomy(fuel), [fuel]);
+  const costPerKm = useMemo(
+    () => vehicle ? calculateCostPerKm(maintenance, fuel, vehicle.currentOdometer) : null,
+    [maintenance, fuel, vehicle],
+  );
   const mostExpensive = useMemo(() => getMostExpensiveRepair(maintenance), [maintenance]);
   const lastOilChange = useMemo(() => getLastServiceByCategory(maintenance, 'oil-change'), [maintenance]);
   const spendByCategory = useMemo(() => calculateSpendByCategory(maintenance), [maintenance]);
@@ -187,6 +192,12 @@ export default function ReportsPage() {
             subValue="maintenance + fuel"
             accent="orange"
             onClick={() => setBreakdownType('total')}
+          />
+          <StatCard
+            label="Cost / km"
+            value={costPerKm != null ? `$${costPerKm.toFixed(2)}` : '—'}
+            subValue={costPerKm != null ? 'all costs included' : 'need 2+ fill-ups'}
+            accent="blue"
           />
         </div>
 

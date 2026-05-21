@@ -1,16 +1,20 @@
 import { useLocation, NavLink } from 'react-router-dom';
 import { Home, Wrench, Droplets, BarChart2, Settings2 } from 'lucide-react';
+import { useVehicle } from '../../hooks/useVehicle';
+import { useReminders } from '../../hooks/useReminders';
 
 const TABS = [
-  { to: '/', icon: Home, label: 'Home', exact: true },
-  { to: '/maintenance', icon: Wrench, label: 'Service', exact: false },
-  { to: '/fuel', icon: Droplets, label: 'Fuel', exact: false },
-  { to: '/reports', icon: BarChart2, label: 'Reports', exact: false },
-  { to: '/settings', icon: Settings2, label: 'Settings', exact: false },
+  { to: '/',            icon: Home,      label: 'Home',     exact: true  },
+  { to: '/maintenance', icon: Wrench,    label: 'Service',  exact: false },
+  { to: '/fuel',        icon: Droplets,  label: 'Fuel',     exact: false },
+  { to: '/reports',     icon: BarChart2, label: 'Reports',  exact: false },
+  { to: '/settings',    icon: Settings2, label: 'Settings', exact: false },
 ] as const;
 
 export default function BottomNav() {
   const location = useLocation();
+  const { vehicle } = useVehicle();
+  const { urgentCount } = useReminders(vehicle?.id, vehicle?.currentOdometer ?? 0, null);
 
   return (
     // flex-shrink-0: plain flex child, sits at the bottom of AppShell's
@@ -32,11 +36,16 @@ export default function BottomNav() {
               to={to}
               className="flex-1 flex flex-col items-center justify-center gap-0.5"
             >
-              <Icon
-                size={24}
-                className={`${active ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'} ${active ? 'nav-icon-active' : ''}`}
-                strokeWidth={active ? 2.5 : 1.8}
-              />
+              <div className="relative">
+                <Icon
+                  size={24}
+                  className={`${active ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'} ${active ? 'nav-icon-active' : ''}`}
+                  strokeWidth={active ? 2.5 : 1.8}
+                />
+                {to === '/maintenance' && urgentCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+                )}
+              </div>
               <span
                 className={`text-[10px] font-medium ${
                   active ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'

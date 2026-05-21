@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Wrench } from 'lucide-react';
+import { Plus, Wrench, Search, X } from 'lucide-react';
 import ReceiptViewer from '../../components/ui/ReceiptViewer';
 import { useVehicle } from '../../hooks/useVehicle';
 import { useMaintenance } from '../../hooks/useMaintenance';
@@ -13,6 +13,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Button from '../../components/ui/Button';
 import MaintenanceItem from '../../components/features/MaintenanceItem';
 import ReminderCard from '../../components/features/ReminderCard';
+import ReminderSuggestion, { getDefaultInterval } from '../../components/features/ReminderSuggestion';
 import MaintenanceForm from './MaintenanceForm';
 import TimelineView from './TimelineView';
 
@@ -22,22 +23,51 @@ export default function MaintenancePage() {
   const { records: fuel } = useFuel(vehicle?.id);
 
   const avgKmPerDay = useMemo(() => calculateAvgKmPerDay(fuel), [fuel]);
-  const { reminders } = useReminders(vehicle?.id, vehicle?.currentOdometer ?? 0, avgKmPerDay);
+  const { reminders, addReminder, updateReminder } = useReminders(
+    vehicle?.id,
+    vehicle?.currentOdometer ?? 0,
+    avgKmPerDay,
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<MaintenanceRecord | null>(null);
   const [filter, setFilter] = useState<MaintenanceCategory | 'all'>('all');
   const [tab, setTab] = useState<'log' | 'timeline' | 'reminders'>('log');
   const [viewingReceipt, setViewingReceipt] = useState<MaintenanceRecord | null>(null);
+  const [search, setSearch] = useState('');
+  const [pendingSuggestion, setPendingSuggestion] = useState<{
+    category: MaintenanceCategory;
+    title: string;
+    odometer: number;
+    date: Date;
+  } | null>(null);
+
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.shop?.toLowerCase().includes(q) ||
+        r.notes?.toLowerCase().includes(q),
+    );
+  }, [records, search]);
 
   const filtered = useMemo(
-    () => (filter === 'all' ? records : records.filter((r) => r.category === filter)),
-    [records, filter],
+    () => (filter === 'all' ? searched : searched.filter((r) => r.category === filter)),
+    [searched, filter],
   );
 
   const usedCategories = useMemo(
     () => CATEGORY_LIST.filter((c) => records.some((r) => r.category === c.value)),
     [records],
+  );
+
+  const existingReminder = useMemo(
+    () => pendingSuggestion
+      ? reminders.find((r) => r.serviceType === pendingSuggestion.category)
+      : undefined,
+    [pendingSuggestion, reminders],
   );
 
   const openNew = () => { setSelected(null); setFormOpen(true); };
@@ -46,15 +76,49 @@ export default function MaintenancePage() {
   const handleSave = async (data: Parameters<typeof addRecord>[0]) => {
     if (selected) {
       await updateRecord(selected.id, data);
+      setFormOpen(false);
     } else {
       await addRecord(data);
+      setFormOpen(false);
+      if (getDefaultInterval(data.category)) {
+        setPendingSuggestion({
+          category: data.category,
+          title: data.title,
+          odometer: data.odometer,
+          date: data.date,
+        });
+      }
     }
-    setFormOpen(false);
   };
 
   const handleDelete = async () => {
     if (selected) await deleteRecord(selected.id);
     setFormOpen(false);
+  };
+
+  const handleSuggestionAccept = async () => {
+    if (!pendingSuggestion || !vehicle) return;
+    const interval = getDefaultInterval(pendingSuggestion.category)!;
+
+    if (existingReminder) {
+      await updateReminder(existingReminder.id, {
+        lastServiceOdometer: pendingSuggestion.odometer,
+        lastServiceDate: pendingSuggestion.date,
+      });
+    } else {
+      await addReminder({
+        vehicleId: vehicle.id,
+        serviceType: pendingSuggestion.category,
+        title: pendingSuggestion.title,
+        mode: interval.km > 0 ? 'km' : 'months',
+        intervalKm: interval.km > 0 ? interval.km : undefined,
+        intervalMonths: interval.km === 0 ? 12 : undefined,
+        lastServiceOdometer: pendingSuggestion.odometer,
+        lastServiceDate: pendingSuggestion.date,
+        isActive: true,
+      });
+    }
+    setPendingSuggestion(null);
   };
 
   return (
@@ -104,6 +168,32 @@ export default function MaintenancePage() {
         </div>
       ) : tab === 'log' ? (
         <>
+          {/* Search bar */}
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ios-gray dark:text-gray-400 pointer-events-none"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search services…"
+                className="w-full pl-9 pr-8 py-2.5 bg-white/40 dark:bg-white/[0.07] border border-white/60 dark:border-white/[0.10] rounded-xl text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-ios-blue/40 focus:border-ios-blue transition-colors text-[15px]"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ios-gray dark:text-gray-400"
+                  aria-label="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Category filter */}
           {usedCategories.length > 1 && (
             <div className="px-4 pb-2">
@@ -139,9 +229,13 @@ export default function MaintenancePage() {
             {filtered.length === 0 ? (
               <EmptyState
                 icon={Wrench}
-                title="No service records"
-                description="Tap Add to log your first maintenance entry."
-                action={{ label: 'Log Service', onClick: openNew }}
+                title={search ? 'No matching records' : 'No service records'}
+                description={
+                  search
+                    ? 'Try a different search term.'
+                    : 'Tap Add to log your first maintenance entry.'
+                }
+                action={search ? undefined : { label: 'Log Service', onClick: openNew }}
               />
             ) : (
               <Card padding={false}>
@@ -188,6 +282,16 @@ export default function MaintenancePage() {
         onDelete={handleDelete}
         onClose={() => setFormOpen(false)}
       />
+
+      {pendingSuggestion && (
+        <ReminderSuggestion
+          category={pendingSuggestion.category}
+          serviceTitle={pendingSuggestion.title}
+          existingReminder={existingReminder}
+          onAccept={handleSuggestionAccept}
+          onSkip={() => setPendingSuggestion(null)}
+        />
+      )}
 
       {viewingReceipt?.receiptImage && (
         <ReceiptViewer

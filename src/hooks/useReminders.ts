@@ -49,5 +49,10 @@ export function useReminders(
     await db.reminders.delete(id);
   };
 
-  return { reminders, addReminder, updateReminder, deleteReminder };
+  const urgentCount = useMemo(
+    () => reminders.filter((r) => r.status === 'overdue' || r.status === 'due-now').length,
+    [reminders],
+  );
+
+  return { reminders, urgentCount, addReminder, updateReminder, deleteReminder };
 }
