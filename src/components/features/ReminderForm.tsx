@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { FormField, Input, Textarea } from '../ui/FormField';
@@ -11,6 +11,12 @@ import {
   type Reminder,
   type ReminderWithStatus,
 } from '../../models';
+
+const MODE_LABELS: Record<ReminderMode, string> = {
+  km: 'Mileage',
+  months: 'Time',
+  date: 'Date',
+};
 import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
 import { formatInputDate } from '../../utils/formatters';
 
@@ -62,8 +68,14 @@ export default function ReminderForm({
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Track previous isOpen to detect the open transition only — prevents form
+  // reset mid-session when currentOdometer updates via a background DB write.
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (!isOpen) return;
+    const justOpened = isOpen && !prevOpenRef.current;
+    prevOpenRef.current = isOpen;
+    if (!justOpened) return;
+
     if (reminder) {
       setForm({
         vehicleId: reminder.vehicleId,
@@ -187,7 +199,7 @@ export default function ReminderForm({
                       : 'text-ios-gray dark:text-gray-400'
                   }`}
                 >
-                  {m === 'km' ? 'Mileage' : m === 'months' ? 'Time' : 'Date'}
+                  {MODE_LABELS[m]}
                 </button>
               ))}
             </div>

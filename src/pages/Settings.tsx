@@ -8,7 +8,6 @@ import { useMaintenance } from '../hooks/useMaintenance';
 import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { db } from '../db/database';
-import { clearAndReseed } from '../db/seed';
 import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument } from '../models';
 import { decodeVin } from '../utils/vinDecoder';
 import PageHeader from '../components/ui/PageHeader';
@@ -260,19 +259,27 @@ export default function SettingsPage() {
   };
 
   const handleReseed = async () => {
+    // Lazy-load seed module so its large data arrays don't bloat the initial bundle
+    const { clearAndReseed } = await import('../db/seed');
     await clearAndReseed();
     setConfirmReseed(false);
     showToast('Demo data loaded');
   };
 
   const handleClearAll = async () => {
-    await Promise.all([
-      db.vehicles.clear(),
-      db.maintenanceRecords.clear(),
-      db.fuelRecords.clear(),
-      db.reminders.clear(),
-      db.documents.clear(),
-    ]);
+    // Transaction ensures all-or-nothing: a mid-clear failure won't leave the DB in
+    // a partially cleared state with dangling records from deleted vehicles.
+    await db.transaction('rw', [
+      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents,
+    ], async () => {
+      await Promise.all([
+        db.vehicles.clear(),
+        db.maintenanceRecords.clear(),
+        db.fuelRecords.clear(),
+        db.reminders.clear(),
+        db.documents.clear(),
+      ]);
+    });
     setConfirmClear(false);
     showToast('All data cleared');
   };

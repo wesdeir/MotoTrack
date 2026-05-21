@@ -6,7 +6,11 @@ export interface DecodedVin {
   engine?: string;
 }
 
+// Module-level cache — prevents duplicate network requests for the same VIN
+const vinCache = new Map<string, DecodedVin | null>();
+
 export async function decodeVin(vin: string): Promise<DecodedVin | null> {
+  if (vinCache.has(vin)) return vinCache.get(vin)!;
   try {
     const res = await fetch(
       `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`,
@@ -33,7 +37,9 @@ export async function decodeVin(vin: string): Promise<DecodedVin | null> {
       engine = parts.join(' ') || undefined;
     }
 
-    return { make, model, year, trim, engine };
+    const result: DecodedVin | null = make && model && year ? { make, model, year, trim, engine } : null;
+    vinCache.set(vin, result);
+    return result;
   } catch {
     return null;
   }

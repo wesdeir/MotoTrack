@@ -6,7 +6,7 @@ import { useMaintenance } from '../../hooks/useMaintenance';
 import { useFuel } from '../../hooks/useFuel';
 import { useReminders } from '../../hooks/useReminders';
 import { calculateAvgKmPerDay } from '../../utils/fuelCalc';
-import { getLastShopByCategory } from '../../utils/maintenanceCalc';
+import { buildLastShopMap } from '../../utils/maintenanceCalc';
 import { CATEGORY_LIST, type MaintenanceCategory, type MaintenanceRecord, type ReminderWithStatus } from '../../models';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -62,6 +62,8 @@ export default function MaintenancePage() {
     () => (filter === 'all' ? searched : searched.filter((r) => r.category === filter)),
     [searched, filter],
   );
+
+  const lastShopMap = useMemo(() => buildLastShopMap(records), [records]);
 
   const usedCategories = useMemo(
     () => CATEGORY_LIST.filter((c) => records.some((r) => r.category === c.value)),
@@ -291,7 +293,7 @@ export default function MaintenancePage() {
                     key={r.id}
                     reminder={r}
                     onClick={() => openEditReminder(r)}
-                    lastServiceShop={getLastShopByCategory(records, r.serviceType)}
+                    lastServiceShop={lastShopMap.get(r.serviceType)}
                   />
                 ))}
               </div>

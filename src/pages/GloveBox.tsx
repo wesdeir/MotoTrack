@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { X, Plus } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Plus, FileText } from 'lucide-react';
 import { useDocuments } from '../hooks/useDocuments';
 import type { VehicleDocument } from '../models';
 import { formatInputDate } from '../utils/formatters';
 import DocumentCard from '../components/features/DocumentCard';
+import EmptyState from '../components/ui/EmptyState';
 import ReceiptUpload from '../components/ui/ReceiptUpload';
 import ReceiptViewer from '../components/ui/ReceiptViewer';
 import Button from '../components/ui/Button';
@@ -38,6 +38,9 @@ function emptyDocForm(type: DocType): DocForm {
   };
 }
 
+// Discriminated union for add vs edit state — avoids the 'new' string sentinel
+type EditingDoc = { mode: 'add' } | { mode: 'edit'; doc: VehicleDocument };
+
 interface Props {
   vehicleId: string;
   onClose: () => void;
@@ -46,23 +49,42 @@ interface Props {
 export default function GloveBox({ vehicleId, onClose }: Props) {
   const { documents, addDocument, updateDocument, deleteDocument } = useDocuments(vehicleId);
   const [activeTab, setActiveTab] = useState<DocType>('insurance');
-  const [editingDoc, setEditingDoc] = useState<VehicleDocument | 'new' | null>(null);
+  const [editingDoc, setEditingDoc] = useState<EditingDoc | null>(null);
   const [docForm, setDocForm] = useState<DocForm>(emptyDocForm('insurance'));
   const [viewingDoc, setViewingDoc] = useState<VehicleDocument | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Prevent body scroll on iOS Safari while the sheet is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // Single pass over documents — count + expiry flag per tab
+  const tabStats = useMemo(() => {
+    const now = Date.now();
+    const map = new Map<DocType, { count: number; hasExpiring: boolean }>(
+      TABS.map((t) => [t.value, { count: 0, hasExpiring: false }]),
+    );
+    for (const d of documents) {
+      const s = map.get(d.type);
+      if (!s) continue;
+      s.count++;
+      if (!s.hasExpiring && d.expiresAt &&
+          (new Date(d.expiresAt).getTime() - now) / 86400000 <= 30) {
+        s.hasExpiring = true;
+      }
+    }
+    return map;
+  }, [documents]);
 
   const tabDocs = documents.filter((d) => d.type === activeTab);
   const showExpiry = EXPIRY_TYPES.includes(activeTab);
 
   const openAdd = () => {
     setDocForm(emptyDocForm(activeTab));
-    setEditingDoc('new');
+    setEditingDoc({ mode: 'add' });
   };
 
   const openEdit = (doc: VehicleDocument) => {
@@ -72,7 +94,7 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
       imageData: doc.imageData,
       fileName: doc.fileName,
     });
-    setEditingDoc(doc);
+    setEditingDoc({ mode: 'edit', doc });
   };
 
   const closeForm = () => setEditingDoc(null);
@@ -89,10 +111,10 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
         fileName: docForm.fileName,
         expiresAt: docForm.expiresAt ? new Date(docForm.expiresAt) : undefined,
       };
-      if (editingDoc === 'new') {
+      if (editingDoc?.mode === 'add') {
         await addDocument(data);
-      } else if (editingDoc) {
-        await updateDocument(editingDoc.id, data);
+      } else if (editingDoc?.mode === 'edit') {
+        await updateDocument(editingDoc.doc.id, data);
       }
       closeForm();
     } finally {
@@ -101,19 +123,20 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
   };
 
   const handleDelete = async () => {
-    if (editingDoc && editingDoc !== 'new') {
-      await deleteDocument(editingDoc.id);
+    // Guard is safe: Delete button only renders when editingDoc.mode === 'edit'
+    if (editingDoc?.mode === 'edit') {
+      await deleteDocument(editingDoc.doc.id);
       closeForm();
     }
     setConfirmDelete(false);
   };
 
+  const activeTabLabel = TABS.find((t) => t.value === activeTab)?.label ?? '';
+
   return (
     <div className="fixed inset-0 z-[65] flex flex-col justify-end">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Sheet */}
       <div
         className="relative bg-white/50 backdrop-blur-2xl border-t border-x border-white/70 shadow-glass dark:bg-[#080E1C]/80 dark:border-white/[0.12] dark:shadow-glass-dark rounded-t-3xl flex flex-col animate-slide-up"
         style={{
@@ -121,12 +144,10 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
           maxHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - 24px)',
         }}
       >
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
           <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-white/[0.15]" />
         </div>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-white/[0.08] flex-shrink-0">
           <h2 className="text-lg font-bold text-black dark:text-white">Documents</h2>
           <div className="flex items-center gap-2">
@@ -148,14 +169,10 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
           </div>
         </div>
 
-        {/* Tab bar */}
         {editingDoc === null && (
           <div className="flex border-b border-gray-100 dark:border-white/[0.08] flex-shrink-0">
             {TABS.map((t) => {
-              const count = documents.filter((d) => d.type === t.value).length;
-              const hasExpiring = documents
-                .filter((d) => d.type === t.value && d.expiresAt)
-                .some((d) => differenceInDays(new Date(d.expiresAt!), new Date()) <= 30);
+              const { count, hasExpiring } = tabStats.get(t.value) ?? { count: 0, hasExpiring: false };
               return (
                 <button
                   key={t.value}
@@ -179,13 +196,11 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
           </div>
         )}
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto scroll-area">
           {editingDoc !== null ? (
-            /* Add / Edit form */
             <div className="px-5 py-4 space-y-4 pb-8">
               <p className="text-base font-bold text-black dark:text-white">
-                {editingDoc === 'new' ? `Add ${TABS.find((t) => t.value === activeTab)?.label}` : 'Edit Document'}
+                {editingDoc.mode === 'add' ? `Add ${activeTabLabel}` : 'Edit Document'}
               </p>
 
               <FormField label="Title" required>
@@ -223,9 +238,9 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
                   size="lg"
                   disabled={!docForm.imageData || !docForm.title.trim()}
                 >
-                  {editingDoc === 'new' ? 'Save Document' : 'Save Changes'}
+                  {editingDoc.mode === 'add' ? 'Save Document' : 'Save Changes'}
                 </Button>
-                {editingDoc !== 'new' && (
+                {editingDoc.mode === 'edit' && (
                   <Button
                     onClick={() => setConfirmDelete(true)}
                     variant="danger"
@@ -241,21 +256,12 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
               </div>
             </div>
           ) : tabDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-              <div className="text-4xl mb-3">📄</div>
-              <p className="text-[15px] font-semibold text-black dark:text-white mb-1">
-                No {TABS.find((t) => t.value === activeTab)?.label} documents
-              </p>
-              <p className="text-sm text-ios-gray dark:text-gray-400 mb-4">
-                Tap + to add a photo or PDF of your documents.
-              </p>
-              <button
-                onClick={openAdd}
-                className="flex items-center gap-2 px-5 py-2.5 bg-ios-blue text-white rounded-2xl text-sm font-semibold"
-              >
-                <Plus size={16} /> Add Document
-              </button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={`No ${activeTabLabel} documents`}
+              description="Tap + to add a photo or PDF of your documents."
+              action={{ label: 'Add Document', onClick: openAdd }}
+            />
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
               {tabDocs.map((doc) => (

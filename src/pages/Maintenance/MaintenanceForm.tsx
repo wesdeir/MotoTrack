@@ -175,31 +175,24 @@ export default function MaintenanceForm({
     });
   };
 
-  const addPart = () => {
-    setForm((p) => {
-      const parts = [...p.parts, { name: '', cost: 0 }];
-      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
-      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
-    });
+  // Shared updater: recalculates partsCost and totalCost from a new parts array
+  const applyParts = (p: FormState, parts: PartUsed[]) => {
+    const partsCost = parts.reduce((s, pt) => s + pt.cost, 0);
+    return { ...p, parts, partsCost, totalCost: calcTotal(p.laborCost, partsCost, p.tax) };
   };
 
-  const removePart = (i: number) => {
-    setForm((p) => {
-      const parts = p.parts.filter((_, idx) => idx !== i);
-      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
-      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
-    });
-  };
+  const addPart = () => setForm((p) => applyParts(p, [...p.parts, { name: '', cost: 0 }]));
 
-  const updatePart = (i: number, field: keyof PartUsed, value: string | number) => {
-    setForm((p) => {
-      const parts = p.parts.map((pt, idx) =>
+  const removePart = (i: number) =>
+    setForm((p) => applyParts(p, p.parts.filter((_, idx) => idx !== i)));
+
+  const updatePart = (i: number, field: keyof PartUsed, value: string | number) =>
+    setForm((p) => applyParts(
+      p,
+      p.parts.map((pt, idx) =>
         idx === i ? { ...pt, [field]: field === 'cost' ? Number(value) || 0 : value } : pt,
-      );
-      const partsTotal = parts.reduce((s, pt) => s + pt.cost, 0);
-      return { ...p, parts, partsCost: partsTotal, totalCost: calcTotal(p.laborCost, partsTotal, p.tax) };
-    });
-  };
+      ),
+    ));
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};

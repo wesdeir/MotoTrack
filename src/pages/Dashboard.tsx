@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { differenceInDays } from 'date-fns';
 import { ChevronRight, Wrench, Droplets, FolderOpen } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
@@ -11,7 +12,7 @@ import GloveBox from './GloveBox';
 import {
   calculateTotalMaintenanceSpend,
   getRecentRecords,
-  getLastShopByCategory,
+  buildLastShopMap,
 } from '../utils/maintenanceCalc';
 import {
   calculateAvgKmPerDay,
@@ -47,8 +48,9 @@ export default function Dashboard() {
     () => vehicle ? calculateCostPerKm(maintenance, fuel, vehicle.currentOdometer) : null,
     [maintenance, fuel, vehicle],
   );
-  const lastFuel = fuel[0] ?? null;
+  const lastFuel = useMemo(() => fuel[0] ?? null, [fuel]);
   const { documents } = useDocuments(vehicle?.id);
+  const lastShopMap = useMemo(() => buildLastShopMap(maintenance), [maintenance]);
 
   const thisYearSpend = useMemo(() => {
     const year = new Date().getFullYear();
@@ -61,11 +63,11 @@ export default function Dashboard() {
     return mSpend + fSpend;
   }, [maintenance, fuel]);
 
-  const nextDueReminder = reminders[0] ?? null;
-  const hasExpiringDoc = documents.some((d) => {
-    if (!d.expiresAt) return false;
-    return (d.expiresAt.getTime() - Date.now()) / 86400000 <= 30;
-  });
+  const nextDueReminder = useMemo(() => reminders[0] ?? null, [reminders]);
+  const hasExpiringDoc = useMemo(
+    () => documents.some((d) => d.expiresAt != null && differenceInDays(d.expiresAt, new Date()) <= 30),
+    [documents],
+  );
 
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
   const [fuelFormOpen, setFuelFormOpen] = useState(false);
@@ -214,7 +216,7 @@ export default function Dashboard() {
                   key={r.id}
                   reminder={r}
                   onClick={() => openEditReminder(r)}
-                  lastServiceShop={getLastShopByCategory(maintenance, r.serviceType)}
+                  lastServiceShop={lastShopMap.get(r.serviceType)}
                 />
               ))}
             </div>

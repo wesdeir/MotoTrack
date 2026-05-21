@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronRight, Wrench, Droplets, Bell } from 'lucide-react';
-import { clearAndReseed } from '../db/seed';
 import Button from '../components/ui/Button';
 
 interface Props {
@@ -41,6 +40,8 @@ export default function Onboarding({ onDone }: Props) {
   const handleDemo = async () => {
     setLoading(true);
     try {
+      // Lazy-load seed module so its large data arrays don't bloat the initial bundle
+      const { clearAndReseed } = await import('../db/seed');
       await clearAndReseed();
       onDone();
     } finally {
@@ -121,7 +122,7 @@ export default function Onboarding({ onDone }: Props) {
           ))}
         </div>
 
-        {card < 2 ? (
+        {card < CARDS.length - 1 ? (
           <button
             onClick={() => setCard(card + 1)}
             className="flex items-center gap-1 text-ios-blue font-semibold text-[15px]"

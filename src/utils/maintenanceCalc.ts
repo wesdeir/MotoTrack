@@ -40,6 +40,24 @@ export function getLastShopByCategory(
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.shop;
 }
 
+/**
+ * Builds a Map<category → last shop> in a single sort + pass.
+ * Use this at render sites that display a shop per reminder to avoid
+ * O(n × reminders) repeated sorts.
+ */
+export function buildLastShopMap(
+  records: MaintenanceRecord[],
+): Map<MaintenanceCategory, string> {
+  const sorted = [...records].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+  const map = new Map<MaintenanceCategory, string>();
+  for (const r of sorted) {
+    if (r.shop && !map.has(r.category)) map.set(r.category, r.shop);
+  }
+  return map;
+}
+
 export function getLastServiceByCategory(
   records: MaintenanceRecord[],
   category: MaintenanceCategory,
