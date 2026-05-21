@@ -34,9 +34,11 @@ function buildSubtext(r: ReminderWithStatus): string | null {
 export default function ReminderCard({
   reminder,
   onClick,
+  lastServiceShop,
 }: {
   reminder: ReminderWithStatus;
   onClick?: () => void;
+  lastServiceShop?: string;
 }) {
   const subtext = buildSubtext(reminder);
   const pct = Math.min(100, reminder.progressPercent ?? 0);
@@ -62,7 +64,12 @@ export default function ReminderCard({
           <StatusBadge status={reminder.status} />
         </div>
         {subtext && (
-          <p className="text-xs text-ios-gray dark:text-gray-400 mb-1.5">{subtext}</p>
+          <p className="text-xs text-ios-gray dark:text-gray-400 mb-0.5">{subtext}</p>
+        )}
+        {lastServiceShop && (
+          <p className="text-[11px] text-ios-gray dark:text-gray-500 mb-1.5">
+            Last at {lastServiceShop}
+          </p>
         )}
         {reminder.progressPercent != null && (
           <div className="progress-bar">

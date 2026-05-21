@@ -11,6 +11,7 @@ import GloveBox from './GloveBox';
 import {
   calculateTotalMaintenanceSpend,
   getRecentRecords,
+  getLastShopByCategory,
 } from '../utils/maintenanceCalc';
 import {
   calculateAvgKmPerDay,
@@ -18,10 +19,12 @@ import {
 } from '../utils/fuelCalc';
 import { calculateCostPerKm } from '../utils/costOfOwnership';
 import { getUrgentReminders } from '../utils/reminderLogic';
+import type { ReminderWithStatus } from '../models';
 import { formatOdometer, formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
 import ReminderCard from '../components/features/ReminderCard';
+import ReminderForm from '../components/features/ReminderForm';
 import MaintenanceItem from '../components/features/MaintenanceItem';
 import FuelItem from '../components/features/FuelItem';
 import MaintenanceForm from './Maintenance/MaintenanceForm';
@@ -33,7 +36,7 @@ export default function Dashboard() {
   const { records: fuel, addRecord: addFuelRecord } = useFuel(vehicle?.id);
 
   const avgKmPerDay = useMemo(() => calculateAvgKmPerDay(fuel), [fuel]);
-  const { reminders } = useReminders(vehicle?.id, vehicle?.currentOdometer ?? 0, avgKmPerDay);
+  const { reminders, updateReminder, deleteReminder } = useReminders(vehicle?.id, vehicle?.currentOdometer ?? 0, avgKmPerDay);
 
   const urgentReminders = useMemo(() => getUrgentReminders(reminders), [reminders]);
   const recentMaintenance = useMemo(() => getRecentRecords(maintenance, 3), [maintenance]);
@@ -67,6 +70,23 @@ export default function Dashboard() {
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
   const [fuelFormOpen, setFuelFormOpen] = useState(false);
   const [gloveBoxOpen, setGloveBoxOpen] = useState(false);
+  const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState<ReminderWithStatus | null>(null);
+
+  const openEditReminder = (r: ReminderWithStatus) => {
+    setSelectedReminder(r);
+    setReminderFormOpen(true);
+  };
+
+  const handleSaveReminder = async (data: Parameters<typeof updateReminder>[1]) => {
+    if (selectedReminder) await updateReminder(selectedReminder.id, data);
+    setReminderFormOpen(false);
+  };
+
+  const handleDeleteReminder = async () => {
+    if (selectedReminder) await deleteReminder(selectedReminder.id);
+    setReminderFormOpen(false);
+  };
 
   if (vehicle === undefined) {
     return (
@@ -190,7 +210,12 @@ export default function Dashboard() {
           <Card padding={false}>
             <div className="divide-y divide-gray-100 dark:divide-white/[0.08]">
               {urgentReminders.map((r) => (
-                <ReminderCard key={r.id} reminder={r} />
+                <ReminderCard
+                  key={r.id}
+                  reminder={r}
+                  onClick={() => openEditReminder(r)}
+                  lastServiceShop={getLastShopByCategory(maintenance, r.serviceType)}
+                />
               ))}
             </div>
           </Card>
@@ -292,6 +317,15 @@ export default function Dashboard() {
       {gloveBoxOpen && (
         <GloveBox vehicleId={vehicle.id} onClose={() => setGloveBoxOpen(false)} />
       )}
+      <ReminderForm
+        isOpen={reminderFormOpen}
+        reminder={selectedReminder}
+        vehicleId={vehicle.id}
+        currentOdometer={vehicle.currentOdometer}
+        onSave={handleSaveReminder}
+        onDelete={handleDeleteReminder}
+        onClose={() => setReminderFormOpen(false)}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useMaintenance } from '../../hooks/useMaintenance';
 import { useFuel } from '../../hooks/useFuel';
 import { useReminders } from '../../hooks/useReminders';
 import { calculateAvgKmPerDay } from '../../utils/fuelCalc';
+import { getLastShopByCategory } from '../../utils/maintenanceCalc';
 import { CATEGORY_LIST, type MaintenanceCategory, type MaintenanceRecord, type ReminderWithStatus } from '../../models';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -286,7 +287,12 @@ export default function MaintenancePage() {
             <Card padding={false}>
               <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
                 {reminders.map((r) => (
-                  <ReminderCard key={r.id} reminder={r} onClick={() => openEditReminder(r)} />
+                  <ReminderCard
+                    key={r.id}
+                    reminder={r}
+                    onClick={() => openEditReminder(r)}
+                    lastServiceShop={getLastShopByCategory(records, r.serviceType)}
+                  />
                 ))}
               </div>
             </Card>

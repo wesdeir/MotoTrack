@@ -31,6 +31,15 @@ export function getMonthlyMaintenanceSpend(
     .map(([month, spend]) => ({ month, spend }));
 }
 
+export function getLastShopByCategory(
+  records: MaintenanceRecord[],
+  category: MaintenanceCategory,
+): string | undefined {
+  return [...records]
+    .filter((r) => r.category === category && r.shop)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.shop;
+}
+
 export function getLastServiceByCategory(
   records: MaintenanceRecord[],
   category: MaintenanceCategory,
