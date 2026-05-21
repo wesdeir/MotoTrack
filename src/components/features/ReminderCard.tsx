@@ -48,7 +48,7 @@ export default function ReminderCard({
       onClick={onClick}
       role={interactive ? 'button' : undefined}
       className={`w-full flex items-start gap-3 px-4 py-3.5 text-left ${
-        interactive ? 'cursor-pointer active:bg-gray-50 dark:active:bg-white/[0.05]' : ''
+        interactive ? 'cursor-pointer active:bg-white/40 dark:active:bg-white/[0.05]' : ''
       }`}
     >
       <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-ios-blue/10 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">

@@ -1,5 +1,5 @@
 const inputCls =
-  'w-full px-3.5 py-3 bg-white/60 dark:bg-white/[0.06] border border-gray-200/80 dark:border-white/[0.10] rounded-xl text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-ios-blue/40 focus:border-ios-blue transition-colors';
+  'w-full px-3.5 py-3 bg-white/50 dark:bg-white/[0.07] border border-white/70 dark:border-white/[0.10] rounded-xl text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-ios-blue/40 focus:border-ios-blue transition-colors';
 
 interface FieldProps {
   label: string;

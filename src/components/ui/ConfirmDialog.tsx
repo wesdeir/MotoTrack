@@ -23,8 +23,8 @@ export default function ConfirmDialog({
         className="relative mx-2 space-y-2 animate-slide-up"
         style={{ marginBottom: 'calc(var(--nav-height) + var(--safe-bottom) + 8px)' }}
       >
-        <div className="bg-white/85 backdrop-blur-md border border-gray-200/60 dark:bg-white/[0.06] dark:border-white/[0.10] rounded-2xl overflow-hidden">
-          <div className="px-4 py-4 text-center border-b border-gray-100/80 dark:border-white/[0.08]">
+        <div className="bg-white/50 backdrop-blur-2xl border border-white/70 shadow-glass dark:bg-white/[0.07] dark:border-white/[0.12] dark:shadow-glass-dark rounded-2xl overflow-hidden">
+          <div className="px-4 py-4 text-center border-b border-white/60 dark:border-white/[0.08]">
             <p className="text-base font-semibold text-black dark:text-white">{title}</p>
             {message && (
               <p className="text-sm text-ios-gray dark:text-gray-400 mt-1">{message}</p>
@@ -32,7 +32,7 @@ export default function ConfirmDialog({
           </div>
           <button
             onClick={onConfirm}
-            className={`w-full px-4 py-4 text-base font-semibold active:bg-gray-50 dark:active:bg-white/[0.05] ${
+            className={`w-full px-4 py-4 text-base font-semibold active:bg-white/50 dark:active:bg-white/[0.05] ${
               destructive ? 'text-ios-red' : 'text-ios-blue'
             }`}
           >
@@ -41,7 +41,7 @@ export default function ConfirmDialog({
         </div>
         <button
           onClick={onCancel}
-          className="w-full bg-white/85 backdrop-blur-md border border-gray-200/60 dark:bg-white/[0.06] dark:border-white/[0.10] rounded-2xl px-4 py-4 text-base font-semibold text-ios-blue active:bg-gray-50/80 dark:active:bg-white/[0.05]"
+          className="w-full bg-white/50 backdrop-blur-2xl border border-white/70 shadow-glass dark:bg-white/[0.07] dark:border-white/[0.12] dark:shadow-glass-dark rounded-2xl px-4 py-4 text-base font-semibold text-ios-blue active:bg-white/70 dark:active:bg-white/[0.05]"
         >
           Cancel
         </button>

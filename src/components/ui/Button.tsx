@@ -10,7 +10,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS = {
   primary: 'bg-ios-blue text-white active:opacity-85',
-  secondary: 'bg-gray-100 dark:bg-white/[0.07] dark:border dark:border-white/[0.10] text-black dark:text-white active:bg-gray-200 dark:active:bg-white/[0.12]',
+  secondary: 'bg-white/40 border border-white/60 dark:bg-white/[0.07] dark:border-white/[0.10] text-black dark:text-white active:bg-white/60 dark:active:bg-white/[0.12] backdrop-blur-sm',
   danger: 'bg-ios-red text-white active:opacity-85',
   ghost: 'text-ios-blue dark:text-ios-blue active:bg-blue-50 dark:active:bg-ios-blue/10',
 };

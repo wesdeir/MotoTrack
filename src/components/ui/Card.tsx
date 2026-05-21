@@ -9,7 +9,7 @@ export default function Card({ children, className = '', padding = true, onClick
   return (
     <div
       role={onClick ? 'button' : undefined}
-      className={`bg-white/80 backdrop-blur-md border border-gray-200/70 shadow-ios dark:bg-white/[0.04] dark:border-white/[0.08] dark:shadow-none rounded-2xl overflow-hidden ${onClick ? 'active:scale-[0.98] cursor-pointer transition-transform' : ''} ${padding ? 'p-4' : ''} ${className}`}
+      className={`bg-white/40 backdrop-blur-2xl border border-white/60 shadow-glass dark:bg-white/[0.06] dark:border-white/[0.12] dark:shadow-glass-dark rounded-2xl overflow-hidden ${onClick ? 'active:scale-[0.98] cursor-pointer transition-transform' : ''} ${padding ? 'p-4' : ''} ${className}`}
       onClick={onClick}
     >
       {children}

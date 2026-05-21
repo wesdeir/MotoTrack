@@ -439,7 +439,6 @@ export default function SettingsPage() {
             <div className="px-4 pt-3.5 pb-4">
               <p className="text-xs font-medium text-ios-gray dark:text-gray-400 mb-3">
                 Colour Theme
-                <span className="ml-1 text-[10px] opacity-50">· dark mode</span>
               </p>
               <div className="flex justify-between">
                 {COLOR_THEMES.map((t) => (
@@ -485,7 +484,7 @@ export default function SettingsPage() {
             <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
               <button
                 onClick={handleExport}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
               >
                 <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-ios-blue/10 flex items-center justify-center flex-shrink-0">
                   <Download size={18} className="text-ios-blue" />
@@ -499,7 +498,7 @@ export default function SettingsPage() {
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
               >
                 <div className="w-9 h-9 rounded-xl bg-green-50 dark:bg-ios-green/10 flex items-center justify-center flex-shrink-0">
                   <Upload size={18} className="text-ios-green" />
@@ -520,7 +519,7 @@ export default function SettingsPage() {
 
               <button
                 onClick={() => setConfirmReseed(true)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 dark:active:bg-white/[0.05] text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
               >
                 <div className="w-9 h-9 rounded-xl bg-yellow-50 dark:bg-yellow-400/10 flex items-center justify-center flex-shrink-0">
                   <RefreshCw size={18} className="text-ios-yellow" />
@@ -552,7 +551,7 @@ export default function SettingsPage() {
           </p>
           <Card>
             <p className="text-[15px] font-semibold text-black dark:text-white">MotoTrack</p>
-            <p className="text-sm text-ios-gray dark:text-gray-400">Version {__APP_VERSION__}</p>
+            <p className="text-sm text-ios-gray dark:text-gray-400">v{__APP_VERSION__}</p>
             <p className="text-xs text-ios-gray dark:text-gray-500 mt-2">
               All data is stored locally on your device using IndexedDB. No account required. No data leaves your device.
             </p>
@@ -562,7 +561,7 @@ export default function SettingsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-zinc-800 dark:bg-[#0D1525]/95 dark:backdrop-blur-xl dark:border dark:border-white/[0.10] text-white rounded-2xl text-sm font-medium shadow-ios-lg animate-fade-in">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-gray-900/80 backdrop-blur-xl border border-white/[0.12] text-white rounded-2xl text-sm font-medium shadow-glass-dark animate-fade-in whitespace-nowrap">
           {toast}
         </div>
       )}

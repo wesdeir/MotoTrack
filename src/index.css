@@ -13,93 +13,84 @@
   /* Accent — space-separated RGB so Tailwind opacity modifiers work. */
   --tw-accent-rgb: 0 122 255;
 
-  /* Light-mode ambient gradient blobs */
-  --blob-light-1: rgba(0, 122, 255, 0.12);
-  --blob-light-2: rgba(88, 86, 214, 0.08);
+  /* Glassmorphism blobs — light mode (Ocean default).
+     High opacity + large coverage so glass panels have vivid colour to blur. */
+  --blob-light-1: rgba(80, 133, 224, 0.32);
+  --blob-light-2: rgba(99, 57, 210, 0.24);
 
-  /* Dark-mode ambient gradient blobs */
-  --blob-1: rgba(80, 133, 224, 0.10);
-  --blob-2: rgba(99, 57, 210, 0.07);
+  /* Dark mode blobs (Ocean default) */
+  --blob-1: rgba(80, 133, 224, 0.32);
+  --blob-2: rgba(99, 57, 210, 0.24);
 }
 
 /* ---------------------------------------------------------------------------
-   Light-mode theme definitions (applied to <html> by ColorThemeContext).
-   html.theme-* has higher specificity than :root so these override the
-   defaults above. Dark-mode selectors below are even more specific and
-   override these when the user is in dark mode.
+   Light-mode per-theme overrides.
+   html.theme-* specificity beats :root; html.dark.theme-* beats these.
    --------------------------------------------------------------------------- */
 
 html.theme-ocean {
   --tw-accent-rgb: 0 122 255;
-  --blob-light-1: rgba(0, 122, 255, 0.12);
-  --blob-light-2: rgba(88, 86, 214, 0.08);
+  --blob-light-1: rgba(80, 133, 224, 0.32);
+  --blob-light-2: rgba(99, 57, 210, 0.24);
 }
 
 html.theme-electric {
   --tw-accent-rgb: 14 116 144;
-  --blob-light-1: rgba(14, 116, 144, 0.13);
-  --blob-light-2: rgba(0, 160, 210, 0.08);
+  --blob-light-1: rgba(34, 211, 238, 0.30);
+  --blob-light-2: rgba(0, 160, 210, 0.22);
 }
 
 html.theme-aurora {
   --tw-accent-rgb: 109 40 217;
-  --blob-light-1: rgba(109, 40, 217, 0.12);
-  --blob-light-2: rgba(79, 42, 210, 0.08);
+  --blob-light-1: rgba(139, 92, 246, 0.32);
+  --blob-light-2: rgba(79, 42, 210, 0.24);
 }
 
 html.theme-emerald {
   --tw-accent-rgb: 5 150 105;
-  --blob-light-1: rgba(5, 150, 105, 0.12);
-  --blob-light-2: rgba(5, 120, 80, 0.08);
+  --blob-light-1: rgba(16, 185, 129, 0.30);
+  --blob-light-2: rgba(5, 120, 80, 0.22);
 }
 
 html.theme-sunset {
   --tw-accent-rgb: 234 88 12;
-  --blob-light-1: rgba(234, 88, 12, 0.12);
-  --blob-light-2: rgba(239, 68, 68, 0.08);
+  --blob-light-1: rgba(251, 146, 60, 0.32);
+  --blob-light-2: rgba(239, 68, 68, 0.24);
 }
 
 /* ---------------------------------------------------------------------------
-   Dark-mode theme definitions
-   Each class is applied to <html> by ColorThemeContext.
-   Only --tw-accent-rgb and blob colours change — all other glass/layout
-   variables stay the same across themes.
+   Dark-mode per-theme overrides
    --------------------------------------------------------------------------- */
 
-/* Ocean (default) */
 html.dark,
 html.dark.theme-ocean {
   --tw-accent-rgb: 80 133 224;
-  --blob-1: rgba(80, 133, 224, 0.10);
-  --blob-2: rgba(99,  57, 210, 0.07);
+  --blob-1: rgba(80, 133, 224, 0.32);
+  --blob-2: rgba(99,  57, 210, 0.24);
 }
 
-/* Electric — cyan, inspired by glowing-sphere aesthetic */
 html.dark.theme-electric {
   --tw-accent-rgb: 34 211 238;
-  --blob-1: rgba(34, 211, 238, 0.09);
-  --blob-2: rgba(0,  160, 210, 0.07);
+  --blob-1: rgba(34, 211, 238, 0.28);
+  --blob-2: rgba(0,  160, 210, 0.22);
 }
 
-/* Aurora — violet/purple */
 html.dark.theme-aurora {
   --tw-accent-rgb: 139 92 246;
-  --blob-1: rgba(139, 92, 246, 0.10);
-  --blob-2: rgba( 79, 42, 210, 0.08);
+  --blob-1: rgba(139, 92, 246, 0.30);
+  --blob-2: rgba( 79, 42, 210, 0.24);
 }
 
-/* Emerald — deep green */
 html.dark.theme-emerald {
   --tw-accent-rgb: 16 185 129;
-  --blob-1: rgba( 16, 185, 129, 0.09);
-  --blob-2: rgba(  5, 120,  80, 0.07);
+  --blob-1: rgba( 16, 185, 129, 0.28);
+  --blob-2: rgba(  5, 120,  80, 0.22);
 }
 
-/* Sunset — amber/orange with a red secondary */
 html.dark.theme-sunset {
   --tw-accent-rgb: 251 146 60;
-  --blob-1: rgba(251, 146,  60, 0.09);
-  --blob-2: rgba(239,  68,  68, 0.07);
+  --blob-1: rgba(251, 146,  60, 0.28);
+  --blob-2: rgba(239,  68,  68, 0.24);
 }
 
 /* ---------------------------------------------------------------------------
@@ -126,21 +117,24 @@ body {
   overscroll-behavior: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Light mode: soft white-gray with theme-tinted gradient blobs */
-  background-color: #F2F2F7;
+  /* Light mode: pure white base with large vivid blobs — glass panels
+     need strong colour behind them for the frosted effect to read. */
+  background-color: #ffffff;
   background-image:
-    radial-gradient(ellipse at 15% 15%, var(--blob-light-1) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 85%, var(--blob-light-2) 0%, transparent 55%);
+    radial-gradient(ellipse 85% 75% at 5% 0%,   var(--blob-light-1) 0%, transparent 100%),
+    radial-gradient(ellipse 75% 80% at 95% 100%, var(--blob-light-2) 0%, transparent 100%);
+  background-attachment: fixed;
   color: #000;
 }
 
 html.dark body {
   background-color: #080E1C;
   color: #fff;
-  /* Dark mode: deep navy with theme-tinted ambient blobs */
+  /* Dark mode: deep navy with large vivid blobs */
   background-image:
-    radial-gradient(ellipse at 15% 15%, var(--blob-1) 0%, transparent 52%),
-    radial-gradient(ellipse at 85% 85%, var(--blob-2) 0%, transparent 52%);
+    radial-gradient(ellipse 80% 70% at 5% 0%,   var(--blob-1) 0%, transparent 100%),
+    radial-gradient(ellipse 70% 75% at 95% 100%, var(--blob-2) 0%, transparent 100%);
+  background-attachment: fixed;
 }
 
 #root {
@@ -228,11 +222,16 @@ input[type="datetime-local"] {
 }
 
 /* ---------------------------------------------------------------------------
-   Nav icon glow — uses the active theme's accent colour automatically
+   Nav icon glow — uses the active theme's accent colour automatically.
+   Both light and dark mode get the glow since background is now colourful.
    --------------------------------------------------------------------------- */
 
+.nav-icon-active {
+  filter: drop-shadow(0 0 5px rgb(var(--tw-accent-rgb) / 0.50));
+}
+
 html.dark .nav-icon-active {
-  filter: drop-shadow(0 0 7px rgb(var(--tw-accent-rgb) / 0.65));
+  filter: drop-shadow(0 0 7px rgb(var(--tw-accent-rgb) / 0.70));
 }
 
 /* ---------------------------------------------------------------------------

@@ -83,7 +83,7 @@ export default function MaintenancePage() {
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               tab === value
                 ? 'bg-ios-blue text-white'
-                : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
+                : 'bg-white/40 backdrop-blur-sm border border-white/60 dark:bg-white/[0.06] dark:border-white/[0.10] text-ios-gray dark:text-gray-400'
             }`}
           >
             {label}
@@ -110,7 +110,7 @@ export default function MaintenancePage() {
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     filter === 'all'
                       ? 'bg-ios-blue text-white'
-                      : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
+                      : 'bg-white/40 backdrop-blur-sm border border-white/60 dark:bg-white/[0.06] dark:border-white/[0.10] text-ios-gray dark:text-gray-400'
                   }`}
                 >
                   All
@@ -122,7 +122,7 @@ export default function MaintenancePage() {
                     className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       filter === c.value
                         ? 'bg-ios-blue text-white'
-                        : 'bg-white dark:bg-white/[0.06] text-ios-gray dark:text-gray-400 border border-gray-200 dark:border-white/[0.10]'
+                        : 'bg-white/40 backdrop-blur-sm border border-white/60 dark:bg-white/[0.06] dark:border-white/[0.10] text-ios-gray dark:text-gray-400'
                     }`}
                   >
                     {c.label}

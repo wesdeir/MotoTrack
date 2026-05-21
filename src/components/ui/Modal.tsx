@@ -29,7 +29,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       />
       {/* Sheet */}
       <div
-        className="relative bg-white/85 backdrop-blur-2xl border-t border-x border-gray-200/60 shadow-ios-lg dark:bg-[#080E1C]/90 dark:border-white/[0.10] rounded-t-3xl animate-slide-up flex flex-col"
+        className="relative bg-white/50 backdrop-blur-2xl border-t border-x border-white/70 shadow-glass dark:bg-[#080E1C]/80 dark:border-white/[0.12] dark:shadow-glass-dark rounded-t-3xl animate-slide-up flex flex-col"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 16px)',
           maxHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - 24px)',

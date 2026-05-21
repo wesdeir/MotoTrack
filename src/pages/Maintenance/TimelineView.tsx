@@ -63,7 +63,7 @@ function TimelineRow({ entry, isLast, onEditMaintenance }: RowProps) {
   const content = isMaintenance ? (
     <button
       onClick={() => onEditMaintenance(entry.record)}
-      className="w-full text-left active:bg-gray-50 dark:active:bg-white/[0.05] rounded-xl -mx-1 px-1 transition-colors"
+      className="w-full text-left active:bg-white/40 dark:active:bg-white/[0.05] rounded-xl -mx-1 px-1 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
