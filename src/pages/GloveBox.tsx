@@ -79,7 +79,7 @@ export default function GloveBox({ vehicleId, onClose }: Props) {
     return map;
   }, [documents]);
 
-  const tabDocs = documents.filter((d) => d.type === activeTab);
+  const tabDocs = useMemo(() => documents.filter((d) => d.type === activeTab), [documents, activeTab]);
   const showExpiry = EXPIRY_TYPES.includes(activeTab);
 
   const openAdd = () => {

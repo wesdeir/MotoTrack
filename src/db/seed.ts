@@ -403,26 +403,14 @@ const reminders: Reminder[] = [
   },
 ];
 
-const SEEDED_FLAG = 'mototrack_seeded';
-
-export async function seedDatabase(): Promise<void> {
-  // If the app has ever been initialized, don't auto-seed again.
-  // This prevents data from reappearing after "Clear All Data".
-  if (localStorage.getItem(SEEDED_FLAG)) return;
-
-  const existingVehicles = await db.vehicles.count();
-  if (existingVehicles > 0) {
-    localStorage.setItem(SEEDED_FLAG, '1'); // sync flag if somehow missing
-    return;
-  }
-
+/** Write all demo data into an empty DB. Called by initDb.ts on first launch. */
+export async function seedDemoData(): Promise<void> {
   await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, async () => {
     await db.vehicles.add(vehicle);
     await db.maintenanceRecords.bulkAdd(maintenance);
     await db.fuelRecords.bulkAdd(fuel);
     await db.reminders.bulkAdd(reminders);
   });
-  localStorage.setItem(SEEDED_FLAG, '1');
 }
 
 export async function clearAndReseed(): Promise<void> {

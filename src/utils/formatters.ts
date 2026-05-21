@@ -32,6 +32,11 @@ export function formatMonthLabel(key: string): string {
   return format(d, 'MMM yy');
 }
 
+export function formatMonthLong(key: string): string {
+  const [year, month] = key.split('-');
+  return format(new Date(parseInt(year), parseInt(month) - 1, 1), 'MMMM yyyy');
+}
+
 export function formatRelativeDate(date: Date | string | undefined): string {
   if (!date) return '—';
   const d = new Date(date);

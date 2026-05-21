@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Theme catalogue — each entry drives both the swatch preview and the CSS
@@ -66,13 +66,18 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     el.classList.add(`theme-${colorTheme}`);
   }, [colorTheme]);
 
-  const setColorTheme = (id: ColorThemeId) => {
+  const setColorTheme = useCallback((id: ColorThemeId) => {
     localStorage.setItem(STORAGE_KEY, id);
     setColorThemeState(id);
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ colorTheme, setColorTheme }),
+    [colorTheme, setColorTheme],
+  );
 
   return (
-    <ColorThemeContext.Provider value={{ colorTheme, setColorTheme }}>
+    <ColorThemeContext.Provider value={value}>
       {children}
     </ColorThemeContext.Provider>
   );

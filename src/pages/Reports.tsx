@@ -3,6 +3,8 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+// recharts is large (~280KB) but only used here; it will be in its own chunk once
+// App.tsx lazy-loads this page via React.lazy()
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useFuel } from '../hooks/useFuel';
@@ -27,6 +29,7 @@ import {
   formatDate,
   formatOdometer,
   formatMonthLabel,
+  formatMonthLong,
 } from '../utils/formatters';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
@@ -60,97 +63,85 @@ export default function ReportsPage() {
   const lastOilChange = useMemo(() => getLastServiceByCategory(maintenance, 'oil-change'), [maintenance]);
   const spendByCategory = useMemo(() => calculateSpendByCategory(maintenance), [maintenance]);
 
+  // Shared monthly aggregations — computed once, reused by both chart and breakdown modal
+  const maintMonthly = useMemo(() => getMonthlyMaintenanceSpend(maintenance), [maintenance]);
+  const fuelMonthly = useMemo(() => getMonthlyFuelSpend(fuel), [fuel]);
+  const fuelEconomyMonthly = useMemo(() => getFuelEconomyByMonth(fuel), [fuel]);
+
   const fuelEconomyData = useMemo(
     () =>
-      getFuelEconomyByMonth(fuel).map((m) => ({
+      fuelEconomyMonthly.map((m) => ({
         month: formatMonthLabel(m.month),
         'L/100km': parseFloat(m.lPer100km.toFixed(2)),
       })),
-    [fuel],
+    [fuelEconomyMonthly],
   );
 
   const monthlyData = useMemo(() => {
-    const maintMonths = getMonthlyMaintenanceSpend(maintenance);
-    const fuelMonths = getMonthlyFuelSpend(fuel);
     const allMonths = Array.from(
-      new Set([...maintMonths.map((m) => m.month), ...fuelMonths.map((f) => f.month)]),
+      new Set([...maintMonthly.map((m) => m.month), ...fuelMonthly.map((f) => f.month)]),
     ).sort();
     return allMonths.slice(-12).map((month) => ({
       month: formatMonthLabel(month),
-      Maintenance: parseFloat((maintMonths.find((m) => m.month === month)?.spend ?? 0).toFixed(2)),
-      Fuel: parseFloat((fuelMonths.find((f) => f.month === month)?.spend ?? 0).toFixed(2)),
+      Maintenance: parseFloat((maintMonthly.find((m) => m.month === month)?.spend ?? 0).toFixed(2)),
+      Fuel: parseFloat((fuelMonthly.find((f) => f.month === month)?.spend ?? 0).toFixed(2)),
     }));
-  }, [maintenance, fuel]);
+  }, [maintMonthly, fuelMonthly]);
 
   const [breakdownType, setBreakdownType] = useState<BreakdownType | null>(null);
 
   const breakdownData = useMemo(() => {
     if (!breakdownType) return null;
 
-    const fmtMonth = (key: string): string => {
-      const [y, m] = key.split('-');
-      return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-CA', {
-        month: 'long',
-        year: 'numeric',
-      });
-    };
-
     if (breakdownType === 'maintenance') {
       return {
         title: 'Maintenance by Month',
-        rows: getMonthlyMaintenanceSpend(maintenance)
+        rows: [...maintMonthly]
           .reverse()
-          .map((m) => ({ label: fmtMonth(m.month), value: formatCurrency(m.spend) })),
+          .map((m) => ({ label: formatMonthLong(m.month), value: formatCurrency(m.spend) })),
       };
     }
     if (breakdownType === 'fuel') {
       return {
         title: 'Fuel Spend by Month',
-        rows: getMonthlyFuelSpend(fuel)
+        rows: [...fuelMonthly]
           .reverse()
-          .map((m) => ({ label: fmtMonth(m.month), value: formatCurrency(m.spend) })),
+          .map((m) => ({ label: formatMonthLong(m.month), value: formatCurrency(m.spend) })),
       };
     }
     if (breakdownType === 'economy') {
       return {
         title: 'Fuel Economy by Month',
-        rows: getFuelEconomyByMonth(fuel)
+        rows: [...fuelEconomyMonthly]
           .reverse()
-          .map((m) => ({ label: fmtMonth(m.month), value: `${m.lPer100km.toFixed(1)} L/100km` })),
+          .map((m) => ({ label: formatMonthLong(m.month), value: `${m.lPer100km.toFixed(1)} L/100km` })),
       };
     }
     // total
-    const mMap: Record<string, number> = Object.fromEntries(
-      getMonthlyMaintenanceSpend(maintenance).map((m) => [m.month, m.spend]),
-    );
-    const fMap: Record<string, number> = Object.fromEntries(
-      getMonthlyFuelSpend(fuel).map((f) => [f.month, f.spend]),
-    );
+    const mMap = Object.fromEntries(maintMonthly.map((m) => [m.month, m.spend]));
+    const fMap = Object.fromEntries(fuelMonthly.map((f) => [f.month, f.spend]));
     const months = [...new Set([...Object.keys(mMap), ...Object.keys(fMap)])].sort((a, b) =>
       b.localeCompare(a),
     );
     return {
       title: 'Total Spend by Month',
       rows: months.map((month) => ({
-        label: fmtMonth(month),
+        label: formatMonthLong(month),
         value: formatCurrency((mMap[month] ?? 0) + (fMap[month] ?? 0)),
       })),
     };
-  }, [breakdownType, maintenance, fuel]);
+  }, [breakdownType, maintMonthly, fuelMonthly, fuelEconomyMonthly]);
 
   const textColor = dark ? '#98989F' : '#6C6C70';
   const gridColor = dark ? '#3A3A3C' : '#E5E5EA';
-  const tooltipBg = dark ? '#1C1C1E' : '#fff';
-  const tooltipBorder = dark ? '#3A3A3C' : '#E5E5EA';
-  const tooltipText = dark ? '#fff' : '#000';
 
-  const tooltipStyle = {
-    backgroundColor: tooltipBg,
-    border: `1px solid ${tooltipBorder}`,
-    color: tooltipText,
+  const tooltipStyle = useMemo(() => ({
+    backgroundColor: dark ? '#1C1C1E' : '#fff',
+    border: `1px solid ${dark ? '#3A3A3C' : '#E5E5EA'}`,
+    color: dark ? '#fff' : '#000',
     borderRadius: '12px',
     fontSize: '13px',
-  };
+  }), [dark]);
 
   if (maintenance.length === 0 && fuel.length === 0) {
     return (
@@ -201,7 +192,7 @@ export default function ReportsPage() {
           />
           <StatCard
             label="Cost / km"
-            value={costPerKm != null ? `$${costPerKm.toFixed(2)}` : '—'}
+            value={costPerKm != null ? formatCurrency(costPerKm) : '—'}
             subValue={costPerKm != null ? 'all costs included' : 'need 2+ fill-ups'}
             accent="blue"
           />

@@ -1,15 +1,8 @@
-import { useEffect } from 'react';
-import { useTheme } from '../../context/ThemeContext';
 import BottomNav from './BottomNav';
 import { useSwipeNavigation } from '../../hooks/useSwipeNavigation';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme } = useTheme();
   useSwipeNavigation();
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
-  }, [resolvedTheme]);
 
   return (
     // `fixed inset-0` pins AppShell to the exact viewport — bypasses the

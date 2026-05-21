@@ -1,6 +1,6 @@
 import { ChevronRight, Droplets } from 'lucide-react';
 import type { FuelRecord } from '../../models';
-import { formatDate, formatOdometer, formatCurrency, formatLitres } from '../../utils/formatters';
+import { formatDate, formatOdometer, formatCurrency, formatLitres, formatPricePerLitre, formatLPer100km } from '../../utils/formatters';
 
 interface FuelItemProps {
   record: FuelRecord;
@@ -26,13 +26,13 @@ export default function FuelItem({ record, onClick, isAnomaly }: FuelItemProps) 
         </p>
         <p className="text-xs text-ios-gray dark:text-gray-400 mt-0.5">
           {formatDate(record.date)} · {formatOdometer(record.odometer)}
-          {record.pricePerLitre ? ` · $${record.pricePerLitre.toFixed(3)}/L` : ''}
+          {record.pricePerLitre ? ` · ${formatPricePerLitre(record.pricePerLitre)}` : ''}
         </p>
       </div>
       <div className="flex-shrink-0 flex items-center gap-1.5">
         {record.lPer100km != null ? (
           <span className="text-sm font-semibold text-ios-blue">
-            {record.lPer100km.toFixed(1)}L/100
+            {formatLPer100km(record.lPer100km)}
           </span>
         ) : (
           <span className="text-xs text-ios-gray dark:text-gray-500">—</span>

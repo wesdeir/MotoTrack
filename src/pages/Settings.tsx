@@ -80,10 +80,12 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [decoding, setDecoding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2500);
   };
 
   // Only auto-open the add form once per mount (after DB confirms no vehicles).

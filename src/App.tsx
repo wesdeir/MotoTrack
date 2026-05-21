@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorThemeProvider } from './context/ColorThemeContext';
@@ -7,9 +7,11 @@ import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import MaintenancePage from './pages/Maintenance';
 import FuelPage from './pages/Fuel';
-import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import Onboarding from './pages/Onboarding';
+
+// Lazy-load the Reports page so recharts (~280 KB) doesn't inflate the initial bundle.
+const ReportsPage = lazy(() => import('./pages/Reports'));
 
 const ONBOARDING_KEY = 'mototrack-onboarding-seen';
 
@@ -42,7 +44,15 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/fuel" element={<FuelPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports" element={
+          <Suspense fallback={
+            <div className="fixed inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-ios-blue/30 border-t-ios-blue animate-spin" />
+            </div>
+          }>
+            <ReportsPage />
+          </Suspense>
+        } />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

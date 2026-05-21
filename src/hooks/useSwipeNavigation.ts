@@ -35,6 +35,10 @@ export function useSwipeNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const startRef = useRef<{ x: number; y: number } | null>(null);
+  // Keep a mutable ref so the stable event handlers always read the current
+  // pathname without being re-created (and re-attached) on every navigation.
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
@@ -62,7 +66,7 @@ export function useSwipeNavigation() {
       if (Math.abs(dx) < MIN_SWIPE_X) return;
       if (Math.abs(dy) > Math.abs(dx) * 0.5) return; // dy > 0.5 dx ≈ angle > 27°
 
-      const idx = ROUTES.indexOf(location.pathname);
+      const idx = ROUTES.indexOf(pathnameRef.current);
       if (idx === -1) return;
 
       if (dx < 0 && idx < ROUTES.length - 1) {
@@ -78,5 +82,5 @@ export function useSwipeNavigation() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [navigate, location.pathname]);
+  }, [navigate]); // navigate is stable — listeners are attached once for the lifetime of AppShell
 }

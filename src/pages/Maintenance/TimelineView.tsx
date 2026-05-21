@@ -7,6 +7,7 @@ import {
   formatOdometer,
   formatCurrency,
   formatLitres,
+  formatLPer100km,
 } from '../../utils/formatters';
 import { CATEGORY_EMOJI } from '../../utils/categoryEmoji';
 import EmptyState from '../../components/ui/EmptyState';
@@ -110,7 +111,7 @@ function TimelineRow({ entry, isLast, onEditMaintenance, onViewReceipt }: RowPro
         </div>
         {entry.record.lPer100km != null && (
           <span className="text-[13px] font-semibold text-ios-blue flex-shrink-0 mt-0.5">
-            {entry.record.lPer100km.toFixed(1)} L/100
+            {formatLPer100km(entry.record.lPer100km)}
           </span>
         )}
       </div>

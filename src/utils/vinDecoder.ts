@@ -10,7 +10,7 @@ export interface DecodedVin {
 const vinCache = new Map<string, DecodedVin | null>();
 
 export async function decodeVin(vin: string): Promise<DecodedVin | null> {
-  if (vinCache.has(vin)) return vinCache.get(vin)!;
+  if (vinCache.has(vin)) return vinCache.get(vin) ?? null;
   try {
     const res = await fetch(
       `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`,
@@ -37,7 +37,8 @@ export async function decodeVin(vin: string): Promise<DecodedVin | null> {
       engine = parts.join(' ') || undefined;
     }
 
-    const result: DecodedVin | null = make && model && year ? { make, model, year, trim, engine } : null;
+    // make, model, year are all confirmed non-empty/non-zero above
+    const result: DecodedVin = { make, model, year, trim, engine };
     vinCache.set(vin, result);
     return result;
   } catch {

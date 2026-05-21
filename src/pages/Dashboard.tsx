@@ -242,7 +242,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="Cost / km"
-          value={costPerKm != null ? `$${costPerKm.toFixed(2)}` : '—'}
+          value={costPerKm != null ? formatCurrency(costPerKm) : '—'}
           subValue={costPerKm != null ? 'all costs' : 'need 2+ fill-ups'}
           accent="blue"
         />

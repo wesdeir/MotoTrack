@@ -1,5 +1,8 @@
 import type { FuelRecord } from '../models';
 
+/** Fill-ups ≥ this multiple of the trailing-5 average are flagged as anomalous. */
+const ECONOMY_ANOMALY_THRESHOLD = 1.15;
+
 /** Add computed km/economy fields to a list of raw fuel records. */
 export function enrichFuelRecords(records: FuelRecord[]): FuelRecord[] {
   if (records.length === 0) return [];
@@ -76,13 +79,6 @@ export function calculateTotalFuelSpend(records: FuelRecord[]): number {
   return records.reduce((sum, r) => sum + r.totalCost, 0);
 }
 
-export function getLastFuelRecord(records: FuelRecord[]): FuelRecord | null {
-  if (records.length === 0) return null;
-  return [...records].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  )[0];
-}
-
 export function calculateAvgKmPerDay(records: FuelRecord[]): number | null {
   if (records.length < 2) return null;
   const sorted = [...records].sort(
@@ -121,7 +117,7 @@ export function detectEconomyAnomalies(records: FuelRecord[]): Set<string> {
     const trailing = valid.slice(Math.max(0, i - 5), i);
     if (trailing.length < 2) continue;
     const avg = trailing.reduce((s, r) => s + r.lPer100km!, 0) / trailing.length;
-    if (valid[i].lPer100km! > avg * 1.15) {
+    if (valid[i].lPer100km! > avg * ECONOMY_ANOMALY_THRESHOLD) {
       anomalies.add(valid[i].id);
     }
   }
