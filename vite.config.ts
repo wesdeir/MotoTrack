@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// On GitHub Actions (CI=true) serve from the repo subdirectory; locally serve from root
+const base = process.env.CI ? '/MotoTrack/' : '/';
+
 export default defineConfig({
+  base,
   define: {
     // Injected at build time from package.json — available as __APP_VERSION__ in source
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
@@ -20,8 +24,8 @@ export default defineConfig({
         background_color: '#F2F2F7',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: base,
+        start_url: base,
         categories: ['utilities', 'productivity'],
         icons: [
           { src: 'pwa-64.png', sizes: '64x64', type: 'image/png' },

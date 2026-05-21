@@ -426,12 +426,13 @@ export async function seedDatabase(): Promise<void> {
 }
 
 export async function clearAndReseed(): Promise<void> {
-  await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, async () => {
+  await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, async () => {
     await Promise.all([
       db.vehicles.clear(),
       db.maintenanceRecords.clear(),
       db.fuelRecords.clear(),
       db.reminders.clear(),
+      db.documents.clear(),
     ]);
     await db.vehicles.add(vehicle);
     await db.maintenanceRecords.bulkAdd(maintenance);

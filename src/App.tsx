@@ -24,7 +24,13 @@ function AppRoutes() {
     setOnboardingDone(true);
   };
 
-  if (vehicle === undefined) return null;
+  if (vehicle === undefined) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F2F2F7] dark:bg-black">
+        <div className="w-8 h-8 rounded-full border-2 border-ios-blue/30 border-t-ios-blue animate-spin" />
+      </div>
+    );
+  }
 
   if (allVehicles.length === 0 && !onboardingDone) {
     return <Onboarding onDone={handleOnboardingDone} />;
