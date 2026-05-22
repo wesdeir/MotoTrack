@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, X } from 'lucide-react';
 import { useTutorial } from '../../context/TutorialContext';
 import Button from '../ui/Button';
-import VehicleSetupModal from './VehicleSetupModal';
+
+// Lazy-load so Modal + FormField + vinDecoder stay out of the main chunk
+const VehicleSetupModal = lazy(() => import('./VehicleSetupModal'));
 
 interface TutorialStep {
   route: string;
@@ -137,11 +139,15 @@ export default function TutorialBanner() {
         </div>
       </div>
 
-      <VehicleSetupModal
-        isOpen={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        onComplete={complete}
-      />
+      {setupOpen && (
+        <Suspense fallback={null}>
+          <VehicleSetupModal
+            isOpen={setupOpen}
+            onClose={() => setSetupOpen(false)}
+            onComplete={complete}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

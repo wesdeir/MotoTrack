@@ -411,13 +411,14 @@ export const DEMO_VEHICLE_ID = VEHICLE_ID;
  */
 export async function clearDemoData(): Promise<void> {
   await db.transaction('rw', [
-    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents,
+    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders,
   ], async () => {
     await db.vehicles.delete(VEHICLE_ID);
-    await db.maintenanceRecords.where('vehicleId').equals(VEHICLE_ID).delete();
-    await db.fuelRecords.where('vehicleId').equals(VEHICLE_ID).delete();
-    await db.reminders.where('vehicleId').equals(VEHICLE_ID).delete();
-    await db.documents.where('vehicleId').equals(VEHICLE_ID).delete();
+    await Promise.all([
+      db.maintenanceRecords.where('vehicleId').equals(VEHICLE_ID).delete(),
+      db.fuelRecords.where('vehicleId').equals(VEHICLE_ID).delete(),
+      db.reminders.where('vehicleId').equals(VEHICLE_ID).delete(),
+    ]);
   });
 }
 

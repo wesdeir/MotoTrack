@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
-  ChevronRight, Check, Plus, PencilLine, FileText, Loader2,
+  ChevronRight, Check, Plus, PencilLine, FileText,
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
+import { useVehicleForm } from '../hooks/useVehicleForm';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { db } from '../db/database';
 import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument } from '../models';
-import { decodeVin } from '../utils/vinDecoder';
+import { vehicleToForm, formToVehicleData } from '../utils/vehicleForm';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { FormField, Input, Select } from '../components/ui/FormField';
+import VehicleFormFields from '../components/features/VehicleFormFields';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { formatInputDate } from '../utils/formatters';
 import { exportServiceHistoryPDF } from '../utils/pdfExport';
@@ -25,43 +26,6 @@ function reviveDates(_key: string, value: unknown): unknown {
   return value;
 }
 
-const CURRENCY_OPTIONS = [
-  { value: 'CAD', label: 'CAD ($)' },
-  { value: 'USD', label: 'USD ($)' },
-];
-
-interface VehicleForm {
-  nickname: string;
-  year: number | '';
-  make: string;
-  model: string;
-  trim: string;
-  engine: string;
-  vin: string;
-  currentOdometer: number | '';
-  currency: 'CAD' | 'USD';
-}
-
-function emptyVehicleForm(): VehicleForm {
-  return {
-    nickname: '', year: '', make: '', model: '',
-    trim: '', engine: '', vin: '', currentOdometer: '', currency: 'CAD',
-  };
-}
-
-function vehicleToForm(v: Vehicle): VehicleForm {
-  return {
-    nickname: v.nickname,
-    year: v.year,
-    make: v.make,
-    model: v.model,
-    trim: v.trim ?? '',
-    engine: v.engine ?? '',
-    vin: v.vin ?? '',
-    currentOdometer: v.currentOdometer,
-    currency: (v.currency as 'CAD' | 'USD') ?? 'CAD',
-  };
-}
 
 export default function SettingsPage() {
   const { vehicle, allVehicles, activeId, switchVehicle, addVehicle, updateVehicle, deleteVehicle } = useVehicle();
@@ -69,18 +33,25 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
 
+  const {
+    form, errors: formErrors, setField, setErrors: setFormErrors,
+    validate: runValidation, reset: resetForm, decoding, handleDecodeVin,
+  } = useVehicleForm();
+
   // null = fleet list; 'new' = add form; string id = edit form
   const [editId, setEditId] = useState<'new' | string | null>(null);
-  const [form, setForm] = useState<VehicleForm>(emptyVehicleForm());
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof VehicleForm, string>>>({});
   const [saving, setSaving] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmReseed, setConfirmReseed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [decoding, setDecoding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up toast timer on unmount
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   const showToast = (msg: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -97,7 +68,7 @@ export default function SettingsPage() {
       autoOpenDone.current = true;
       if (allVehicles.length === 0) {
         setEditId('new');
-        setForm(emptyVehicleForm());
+        resetForm();
       }
     }
   }, [vehicle, allVehicles]);
@@ -110,14 +81,12 @@ export default function SettingsPage() {
   }, [allVehicles, editId]);
 
   const openAdd = () => {
-    setForm(emptyVehicleForm());
-    setFormErrors({});
+    resetForm();
     setEditId('new');
   };
 
   const openEdit = (v: Vehicle) => {
-    setForm(vehicleToForm(v));
-    setFormErrors({});
+    resetForm(vehicleToForm(v));
     setEditId(v.id);
   };
 
@@ -126,43 +95,12 @@ export default function SettingsPage() {
     setFormErrors({});
   };
 
-  const setField = <K extends keyof VehicleForm>(key: K, val: VehicleForm[K]) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    setFormErrors((e) => ({ ...e, [key]: undefined }));
-  };
-
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof VehicleForm, string>> = {};
-    if (!form.nickname.trim()) errs.nickname = 'Required';
-    if (!form.year || Number(form.year) < 1900 || Number(form.year) > new Date().getFullYear() + 2) {
-      errs.year = 'Enter a valid year';
-    }
-    if (!form.make.trim()) errs.make = 'Required';
-    if (!form.model.trim()) errs.model = 'Required';
-    if (form.currentOdometer === '' || Number(form.currentOdometer) < 0) {
-      errs.currentOdometer = 'Required';
-    }
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
   const handleSaveVehicle = async () => {
-    if (!validate()) return;
+    const errs = runValidation();
+    if (Object.keys(errs).length > 0) return;
     setSaving(true);
     try {
-      const data = {
-        nickname: form.nickname.trim(),
-        year: Number(form.year),
-        make: form.make.trim(),
-        model: form.model.trim(),
-        trim: form.trim.trim() || undefined,
-        engine: form.engine.trim() || undefined,
-        vin: form.vin.trim() || undefined,
-        currentOdometer: Number(form.currentOdometer),
-        currency: form.currency,
-        units: 'km' as const,
-        fuelUnits: 'litres' as const,
-      };
+      const data = formToVehicleData(form);
       if (editId === 'new') {
         await addVehicle(data);
         showToast('Vehicle added');
@@ -183,27 +121,9 @@ export default function SettingsPage() {
     showToast('Vehicle deleted');
   };
 
-  const handleDecodeVin = async () => {
-    if (form.vin.length < 17) return;
-    setDecoding(true);
-    try {
-      const result = await decodeVin(form.vin);
-      if (result) {
-        setForm((p) => ({
-          ...p,
-          make: result.make,
-          model: result.model,
-          year: result.year,
-          trim: result.trim ?? p.trim,
-          engine: result.engine ?? p.engine,
-        }));
-        showToast('Vehicle details filled from VIN');
-      } else {
-        showToast('VIN not found — fill in manually');
-      }
-    } finally {
-      setDecoding(false);
-    }
+  const onDecodeVin = async () => {
+    const decoded = await handleDecodeVin();
+    showToast(decoded ? 'Vehicle details filled from VIN' : 'VIN not found — fill in manually');
   };
 
   const handleExportPDF = async () => {
@@ -324,93 +244,13 @@ export default function SettingsPage() {
                 {editId === 'new' ? 'Add Vehicle' : 'Edit Vehicle'}
               </p>
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Nickname" error={formErrors.nickname} required>
-                    <Input
-                      value={form.nickname}
-                      onChange={(e) => setField('nickname', e.target.value)}
-                      placeholder="e.g. Civic SiR"
-                    />
-                  </FormField>
-                  <FormField label="Year" error={formErrors.year} required>
-                    <Input
-                      type="number"
-                      value={form.year}
-                      onChange={(e) => setField('year', e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="2002"
-                      min={1900}
-                    />
-                  </FormField>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Make" error={formErrors.make} required>
-                    <Input
-                      value={form.make}
-                      onChange={(e) => setField('make', e.target.value)}
-                      placeholder="Honda"
-                    />
-                  </FormField>
-                  <FormField label="Model" error={formErrors.model} required>
-                    <Input
-                      value={form.model}
-                      onChange={(e) => setField('model', e.target.value)}
-                      placeholder="Civic"
-                    />
-                  </FormField>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Trim">
-                    <Input
-                      value={form.trim}
-                      onChange={(e) => setField('trim', e.target.value)}
-                      placeholder="SiR (EP3)"
-                    />
-                  </FormField>
-                  <FormField label="Engine">
-                    <Input
-                      value={form.engine}
-                      onChange={(e) => setField('engine', e.target.value)}
-                      placeholder="2.0L K20A3"
-                    />
-                  </FormField>
-                </div>
-                <FormField label="VIN">
-                  <div className="flex gap-2">
-                    <Input
-                      value={form.vin}
-                      onChange={(e) => setField('vin', e.target.value.toUpperCase())}
-                      placeholder="1HGEM22952L000001"
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleDecodeVin}
-                      disabled={form.vin.length < 17 || decoding}
-                      className="px-3 py-2 rounded-xl bg-ios-blue text-white text-sm font-semibold disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5"
-                    >
-                      {decoding ? <Loader2 size={14} className="animate-spin" /> : null}
-                      Decode
-                    </button>
-                  </div>
-                </FormField>
-                <FormField label="Odometer (km)" error={formErrors.currentOdometer} required>
-                  <Input
-                    type="number"
-                    value={form.currentOdometer}
-                    onChange={(e) =>
-                      setField('currentOdometer', e.target.value === '' ? '' : Number(e.target.value))
-                    }
-                    placeholder="150000"
-                    min={0}
-                  />
-                </FormField>
-                <FormField label="Currency">
-                  <Select
-                    value={form.currency}
-                    onChange={(e) => setField('currency', e.target.value as 'CAD' | 'USD')}
-                    options={CURRENCY_OPTIONS}
-                  />
-                </FormField>
+                <VehicleFormFields
+                  form={form}
+                  errors={formErrors}
+                  setField={setField}
+                  decoding={decoding}
+                  onDecodeVin={onDecodeVin}
+                />
 
                 <div className="flex gap-3 pt-1">
                   <Button onClick={handleSaveVehicle} loading={saving} fullWidth>
