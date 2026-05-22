@@ -1,5 +1,6 @@
 import BottomNav from './BottomNav';
 import { useSwipeNavigation } from '../../hooks/useSwipeNavigation';
+import TutorialBanner from '../features/TutorialBanner';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   useSwipeNavigation();
@@ -14,6 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-h-0 overflow-y-auto scroll-area">
         {children}
       </main>
+      <TutorialBanner />
       <BottomNav />
     </div>
   );

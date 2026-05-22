@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorThemeProvider } from './context/ColorThemeContext';
+import { TutorialProvider, useTutorial } from './context/TutorialContext';
 import { useVehicle } from './hooks/useVehicle';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
@@ -17,6 +18,7 @@ const ONBOARDING_KEY = 'mototrack-onboarding-seen';
 
 function AppRoutes() {
   const { vehicle, allVehicles } = useVehicle();
+  const { start: startTutorial } = useTutorial();
   const [onboardingDone, setOnboardingDone] = useState(
     () => localStorage.getItem(ONBOARDING_KEY) === '1',
   );
@@ -35,7 +37,15 @@ function AppRoutes() {
   }
 
   if (allVehicles.length === 0 && !onboardingDone) {
-    return <Onboarding onDone={handleOnboardingDone} />;
+    return (
+      <Onboarding
+        onDone={handleOnboardingDone}
+        onStartTutorial={() => {
+          handleOnboardingDone(); // lift the gate so AppShell renders with demo data
+          startTutorial();       // activate the tutorial banner
+        }}
+      />
+    );
   }
 
   return (
@@ -64,9 +74,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <ColorThemeProvider>
-        <HashRouter>
-          <AppRoutes />
-        </HashRouter>
+        <TutorialProvider>
+          <HashRouter>
+            <AppRoutes />
+          </HashRouter>
+        </TutorialProvider>
       </ColorThemeProvider>
     </ThemeProvider>
   );

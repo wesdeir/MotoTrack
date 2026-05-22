@@ -403,6 +403,24 @@ const reminders: Reminder[] = [
   },
 ];
 
+export const DEMO_VEHICLE_ID = VEHICLE_ID;
+
+/**
+ * Surgically removes only the demo vehicle and all its records.
+ * Called when a tutorial user finishes onboarding and adds their own vehicle.
+ */
+export async function clearDemoData(): Promise<void> {
+  await db.transaction('rw', [
+    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents,
+  ], async () => {
+    await db.vehicles.delete(VEHICLE_ID);
+    await db.maintenanceRecords.where('vehicleId').equals(VEHICLE_ID).delete();
+    await db.fuelRecords.where('vehicleId').equals(VEHICLE_ID).delete();
+    await db.reminders.where('vehicleId').equals(VEHICLE_ID).delete();
+    await db.documents.where('vehicleId').equals(VEHICLE_ID).delete();
+  });
+}
+
 /** Write all demo data into an empty DB. Called by initDb.ts on first launch. */
 export async function seedDemoData(): Promise<void> {
   await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, async () => {
