@@ -6,29 +6,34 @@ const STEP_KEY   = 'mototrack-tutorial-step';
 interface TutorialContextValue {
   isActive: boolean;
   step: number;
+  /** Which UI element the current step is describing (matched by page components). */
+  highlight: string | null;
   start: () => void;
   advance: () => void;
   complete: () => void;
   skip: () => void;
+  setHighlight: (id: string | null) => void;
 }
 
 const TutorialContext = createContext<TutorialContextValue>({
   isActive: false,
   step: 0,
+  highlight: null,
   start: () => {},
   advance: () => {},
   complete: () => {},
   skip: () => {},
+  setHighlight: () => {},
 });
 
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
-  // Persist across refreshes so a mid-tutorial reload resumes at the right step
   const [isActive, setIsActive] = useState<boolean>(
     () => localStorage.getItem(ACTIVE_KEY) === '1',
   );
   const [step, setStep] = useState<number>(
     () => parseInt(localStorage.getItem(STEP_KEY) ?? '0', 10),
   );
+  const [highlight, setHighlightRaw] = useState<string | null>(null);
 
   const start = useCallback(() => {
     localStorage.setItem(ACTIVE_KEY, '1');
@@ -50,11 +55,14 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(STEP_KEY);
     setIsActive(false);
     setStep(0);
+    setHighlightRaw(null);
   }, []);
 
+  const setHighlight = useCallback((id: string | null) => setHighlightRaw(id), []);
+
   const value = useMemo(
-    () => ({ isActive, step, start, advance, complete, skip: complete }),
-    [isActive, step, start, advance, complete],
+    () => ({ isActive, step, highlight, start, advance, complete, skip: complete, setHighlight }),
+    [isActive, step, highlight, start, advance, complete, setHighlight],
   );
 
   return (

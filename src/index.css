@@ -200,6 +200,25 @@ input[type="datetime-local"] {
   animation: fadeIn 0.2s ease both;
 }
 
+/* Tutorial highlight — pulsing ring drawn via outline so it isn't clipped by
+   overflow-hidden on Card / rounded containers. */
+@keyframes tutorialPulse {
+  0%, 100% {
+    outline-color: rgba(var(--tw-accent-rgb), 0.12);
+    outline-offset: 2px;
+  }
+  50% {
+    outline-color: rgba(var(--tw-accent-rgb), 0.45);
+    outline-offset: 4px;
+  }
+}
+
+.tutorial-highlight {
+  outline: 2px solid rgba(var(--tw-accent-rgb), 0.3);
+  outline-offset: 3px;
+  animation: tutorialPulse 2s ease-in-out infinite;
+}
+
 /* ---------------------------------------------------------------------------
    Progress bar
    --------------------------------------------------------------------------- */

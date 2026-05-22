@@ -18,6 +18,7 @@ import ReminderSuggestion, { getDefaultInterval } from '../../components/feature
 import ReminderForm from '../../components/features/ReminderForm';
 import MaintenanceForm from './MaintenanceForm';
 import TimelineView from './TimelineView';
+import { useTutorialHighlight } from '../../hooks/useTutorialHighlight';
 
 export default function MaintenancePage() {
   const { vehicle } = useVehicle();
@@ -76,6 +77,8 @@ export default function MaintenancePage() {
       : undefined,
     [pendingSuggestion, reminders],
   );
+
+  const hlTabs = useTutorialHighlight('maintenance-tabs');
 
   const openNew = () => { setSelected(null); setFormOpen(true); };
   const openEdit = (r: MaintenanceRecord) => { setSelected(r); setFormOpen(true); };
@@ -157,8 +160,7 @@ export default function MaintenancePage() {
         }
       />
 
-      {/* Tab bar */}
-      <div className="px-4 pt-1 pb-2 flex gap-2">
+      <div className={`px-4 pt-1 pb-2 flex gap-2 mx-3 rounded-2xl ${hlTabs}`}>
         {(
           [
             { value: 'log',       label: 'Log' },

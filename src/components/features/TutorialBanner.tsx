@@ -1,16 +1,16 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, X } from 'lucide-react';
 import { useTutorial } from '../../context/TutorialContext';
 import Button from '../ui/Button';
 
-// Lazy-load so Modal + FormField + vinDecoder stay out of the main chunk
 const VehicleSetupModal = lazy(() => import('./VehicleSetupModal'));
 
 interface TutorialStep {
   route: string;
   title: string;
   body: string;
+  highlight?: string;
   isLast?: true;
 }
 
@@ -19,31 +19,37 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/',
     title: 'Your Dashboard',
     body: 'Your vehicle overview, quick actions, and recent activity — all in one place.',
+    highlight: 'vehicle-card',
   },
   {
     route: '/',
     title: 'Quick Actions',
     body: 'Tap Log Service or Add Fuel right from the Dashboard — no tab-switching needed.',
+    highlight: 'quick-actions',
   },
   {
     route: '/maintenance',
     title: 'Maintenance Log',
     body: 'Your full service history. Search records, filter by category, or switch to Timeline view.',
+    highlight: 'maintenance-tabs',
   },
   {
     route: '/maintenance',
     title: 'Service Reminders',
     body: 'Tap the Reminders tab above the list. Track by mileage, months, or exact date — the nav badge alerts you when something\'s due.',
+    highlight: 'maintenance-tabs',
   },
   {
     route: '/fuel',
     title: 'Fuel Tracking',
     body: 'Log every fill-up to track spending and watch your fuel economy trend over time.',
+    highlight: 'fuel-stats',
   },
   {
     route: '/reports',
     title: 'Reports & Insights',
     body: 'Lifetime stats, monthly spend breakdowns, and fuel economy charts — all in one view.',
+    highlight: 'reports-stats',
   },
   {
     route: '/',
@@ -54,13 +60,20 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 ];
 
 export default function TutorialBanner() {
-  const { isActive, step, advance, complete, skip } = useTutorial();
+  const { isActive, step, advance, complete, skip, setHighlight } = useTutorial();
   const navigate = useNavigate();
   const [setupOpen, setSetupOpen] = useState(false);
 
+  const current = TUTORIAL_STEPS[Math.min(step, TUTORIAL_STEPS.length - 1)];
+
+  // Sync the highlight target with the current step
+  useEffect(() => {
+    setHighlight(isActive ? (current.highlight ?? null) : null);
+    return () => setHighlight(null);
+  }, [isActive, step, current.highlight, setHighlight]);
+
   if (!isActive) return null;
 
-  const current = TUTORIAL_STEPS[Math.min(step, TUTORIAL_STEPS.length - 1)];
   const isLast = current.isLast === true;
 
   const handleNext = () => {

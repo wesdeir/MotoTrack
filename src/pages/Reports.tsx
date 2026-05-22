@@ -37,6 +37,7 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import { BarChart2 } from 'lucide-react';
+import { useTutorialHighlight } from '../hooks/useTutorialHighlight';
 
 type BreakdownType = 'maintenance' | 'fuel' | 'economy' | 'total';
 
@@ -46,6 +47,7 @@ export default function ReportsPage() {
   const { records: fuel } = useFuel(vehicle?.id);
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === 'dark';
+  const hlStats = useTutorialHighlight('reports-stats');
 
   const totalMaint = useMemo(() => calculateTotalMaintenanceSpend(maintenance), [maintenance]);
   const totalFuel = useMemo(() => calculateTotalFuelSpend(fuel), [fuel]);
@@ -161,8 +163,7 @@ export default function ReportsPage() {
       <PageHeader title="Reports" subtitle="Lifetime statistics" />
 
       <div className="flex-1 overflow-y-auto scroll-area px-4 pb-6 space-y-5">
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid grid-cols-2 gap-3 rounded-2xl ${hlStats}`}>
           <StatCard
             label="Maintenance"
             value={formatCurrency(totalMaint)}

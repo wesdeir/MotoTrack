@@ -16,6 +16,7 @@ import StatCard from '../../components/ui/StatCard';
 import FuelItem from '../../components/features/FuelItem';
 import FuelForm from './FuelForm';
 import type { FuelRecord } from '../../models';
+import { useTutorialHighlight } from '../../hooks/useTutorialHighlight';
 
 export default function FuelPage() {
   const { vehicle } = useVehicle();
@@ -31,6 +32,8 @@ export default function FuelPage() {
     () => records.find((r) => r.lPer100km != null) ?? null,
     [records],
   );
+
+  const hlStats = useTutorialHighlight('fuel-stats');
 
   const openNew = () => { setSelected(null); setFormOpen(true); };
   const openEdit = (r: FuelRecord) => { setSelected(r); setFormOpen(true); };
@@ -63,7 +66,7 @@ export default function FuelPage() {
       />
 
       {records.length > 0 && (
-        <div className="px-4 pb-3 grid grid-cols-2 gap-3">
+        <div className={`px-4 pb-3 grid grid-cols-2 gap-3 rounded-2xl ${hlStats}`}>
           <StatCard
             label="Avg Economy"
             value={avgEconomy != null ? `${avgEconomy.toFixed(1)}` : '—'}

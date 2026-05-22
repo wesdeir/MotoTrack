@@ -30,6 +30,7 @@ import MaintenanceItem from '../components/features/MaintenanceItem';
 import FuelItem from '../components/features/FuelItem';
 import MaintenanceForm from './Maintenance/MaintenanceForm';
 import FuelForm from './Fuel/FuelForm';
+import { useTutorialHighlight } from '../hooks/useTutorialHighlight';
 
 export default function Dashboard() {
   const { vehicle } = useVehicle();
@@ -98,6 +99,9 @@ export default function Dashboard() {
     );
   }
 
+  const hlVehicleCard = useTutorialHighlight('vehicle-card');
+  const hlQuickActions = useTutorialHighlight('quick-actions');
+
   if (vehicle === null) {
     return (
       <div className="h-full flex flex-col items-center justify-center px-8 text-center">
@@ -118,8 +122,7 @@ export default function Dashboard() {
       className="px-4 space-y-5 pb-4"
       style={{ paddingTop: `calc(1rem + var(--safe-top))` }}
     >
-      {/* Vehicle card */}
-      <Card>
+      <Card className={hlVehicleCard}>
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
@@ -175,8 +178,7 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="flex gap-3">
+      <div className={`flex gap-3 rounded-2xl ${hlQuickActions}`}>
         <Button
           variant="secondary"
           className="flex-1"
