@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Lock, Trophy } from 'lucide-react';
+import { Lock, Pin, PinOff, Trophy } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { useAchievements, type AchievementWithState } from '../hooks/useAchievements';
+import { useAchievements, PIN_LIMIT, type AchievementWithState } from '../hooks/useAchievements';
 import { useVehicle } from '../hooks/useVehicle';
 import { formatDate } from '../utils/formatters';
 import type { AchievementCategory } from '../utils/achievements';
@@ -16,10 +16,13 @@ const CATEGORY_LABELS: Record<AchievementCategory, string> = {
   docs:       'Documents',
   milestone:  'Milestones',
   mastery:    'Mastery',
+  streak:     'Streaks',
+  health:     'Health',
+  secret:     'Secret',
 };
 
 const CATEGORY_ORDER: AchievementCategory[] = [
-  'service', 'fuel', 'reminders', 'docs', 'milestone', 'mastery',
+  'service', 'fuel', 'reminders', 'docs', 'milestone', 'mastery', 'streak', 'health', 'secret',
 ];
 
 const TIER_RING: Record<number, string> = {
@@ -27,6 +30,23 @@ const TIER_RING: Record<number, string> = {
   2: 'ring-ios-green/40',
   3: 'ring-ios-orange/50',
   4: 'ring-purple-400/60',
+};
+
+type FilterMode = 'all' | 'unlocked' | 'in-progress' | 'locked';
+type SortMode = 'category' | 'newest' | 'closest' | 'tier';
+
+const FILTER_LABELS: Record<FilterMode, string> = {
+  all:           'All',
+  unlocked:      'Unlocked',
+  'in-progress': 'In Progress',
+  locked:        'Locked',
+};
+
+const SORT_LABELS: Record<SortMode, string> = {
+  category: 'Category',
+  newest:   'Newest',
+  closest:  'Closest',
+  tier:     'Tier',
 };
 
 export default function AchievementsPage() {
@@ -39,9 +59,13 @@ export default function AchievementsPage() {
     totalXp,
     maxXp,
     levelInfo,
+    pinnedAchievements,
     markUnseenAsSeen,
+    togglePin,
   } = useAchievements();
   const [detail, setDetail] = useState<AchievementWithState | null>(null);
+  const [filter, setFilter] = useState<FilterMode>('all');
+  const [sort, setSort] = useState<SortMode>('category');
 
   // Visiting this page counts as seeing the unseen unlocks — clear the "new" indicator.
   useEffect(() => {
@@ -49,9 +73,22 @@ export default function AchievementsPage() {
     markUnseenAsSeen(unseenUnlocks.map((u) => u.definition.id));
   }, [unseenUnlocks, markUnseenAsSeen]);
 
+  const filtered = useMemo(
+    () =>
+      achievements.filter((a) => {
+        if (filter === 'unlocked') return a.unlocked;
+        if (filter === 'locked') return !a.unlocked;
+        if (filter === 'in-progress') {
+          return !a.unlocked && !a.definition.hidden && a.progressFraction > 0;
+        }
+        return true;
+      }),
+    [achievements, filter],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map<AchievementCategory, AchievementWithState[]>();
-    for (const a of achievements) {
+    for (const a of filtered) {
       const cat = a.definition.category;
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(a);
@@ -65,7 +102,31 @@ export default function AchievementsPage() {
       });
     }
     return map;
-  }, [achievements]);
+  }, [filtered]);
+
+  const sortedFlat = useMemo(() => {
+    if (sort === 'category') return [];
+    const arr = [...filtered];
+    if (sort === 'newest') {
+      arr.sort((a, b) => {
+        const aT = a.unlockedAt ? new Date(a.unlockedAt).getTime() : -Infinity;
+        const bT = b.unlockedAt ? new Date(b.unlockedAt).getTime() : -Infinity;
+        return bT - aT;
+      });
+    } else if (sort === 'closest') {
+      arr.sort((a, b) => {
+        if (a.unlocked !== b.unlocked) return a.unlocked ? 1 : -1;
+        return b.progressFraction - a.progressFraction;
+      });
+    } else if (sort === 'tier') {
+      arr.sort((a, b) => {
+        if (a.definition.tier !== b.definition.tier) return b.definition.tier - a.definition.tier;
+        if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+        return b.progressFraction - a.progressFraction;
+      });
+    }
+    return arr;
+  }, [filtered, sort]);
 
   if (!vehicle) {
     return (
@@ -130,29 +191,74 @@ export default function AchievementsPage() {
           </div>
         </Card>
 
-        {CATEGORY_ORDER.map((cat) => {
-          const list = grouped.get(cat);
-          if (!list || list.length === 0) return null;
-          const unlockedInCat = list.filter((a) => a.unlocked).length;
+        {/* Filter + sort bar */}
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
+            {(Object.keys(FILTER_LABELS) as FilterMode[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${
+                  filter === f
+                    ? 'bg-ios-blue text-white'
+                    : 'bg-gray-100 text-ios-gray dark:bg-white/[0.08] dark:text-gray-400 active:opacity-70'
+                }`}
+              >
+                {FILTER_LABELS[f]}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-1 text-[12px] font-semibold text-ios-blue ml-auto">
+            <span className="text-ios-gray dark:text-gray-500 font-medium">Sort:</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortMode)}
+              className="bg-transparent text-ios-blue pr-1 py-1 focus:outline-none cursor-pointer"
+            >
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((s) => (
+                <option key={s} value={s}>{SORT_LABELS[s]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-          return (
-            <section key={cat}>
-              <div className="flex items-center justify-between px-1 mb-2">
-                <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
-                  {CATEGORY_LABELS[cat]}
-                </p>
-                <p className="text-[11px] font-medium text-ios-gray dark:text-gray-500">
-                  {unlockedInCat} / {list.length}
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {list.map((a) => (
-                  <BadgeTile key={a.definition.id} state={a} onTap={() => setDetail(a)} />
-                ))}
-              </div>
-            </section>
-          );
-        })}
+        {filtered.length === 0 ? (
+          <Card className="text-center py-8">
+            <p className="text-sm text-ios-gray dark:text-gray-400">
+              No achievements match this filter.
+            </p>
+          </Card>
+        ) : sort === 'category' ? (
+          CATEGORY_ORDER.map((cat) => {
+            const list = grouped.get(cat);
+            if (!list || list.length === 0) return null;
+            const unlockedInCat = list.filter((a) => a.unlocked).length;
+
+            return (
+              <section key={cat}>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
+                    {CATEGORY_LABELS[cat]}
+                  </p>
+                  <p className="text-[11px] font-medium text-ios-gray dark:text-gray-500">
+                    {unlockedInCat} / {list.length}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {list.map((a) => (
+                    <BadgeTile key={a.definition.id} state={a} onTap={() => setDetail(a)} />
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {sortedFlat.map((a) => (
+              <BadgeTile key={a.definition.id} state={a} onTap={() => setDetail(a)} />
+            ))}
+          </div>
+        )}
 
         <div className="pt-2">
           <Link to="/" className="block">
@@ -161,7 +267,14 @@ export default function AchievementsPage() {
         </div>
       </div>
 
-      {detail && <AchievementDetailModal state={detail} onClose={() => setDetail(null)} />}
+      {detail && (
+        <AchievementDetailModal
+          state={detail}
+          pinnedCount={pinnedAchievements.length}
+          onTogglePin={() => togglePin(detail.definition.id)}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </div>
   );
 }
@@ -169,6 +282,8 @@ export default function AchievementsPage() {
 function BadgeTile({ state, onTap }: { state: AchievementWithState; onTap: () => void }) {
   const def = state.definition;
   const ring = TIER_RING[def.tier];
+  const isHidden = !state.unlocked && def.hidden === true;
+  const displayTitle = isHidden ? '???' : def.title;
 
   return (
     <button
@@ -182,15 +297,27 @@ function BadgeTile({ state, onTap }: { state: AchievementWithState; onTap: () =>
       {state.isNew && (
         <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-ios-red animate-dot-pulse" />
       )}
+      {state.pinned && (
+        <span
+          className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-ios-orange/95 flex items-center justify-center shadow-sm"
+          title="Pinned to Showcase"
+        >
+          <Pin size={9} className="text-white" strokeWidth={3} />
+        </span>
+      )}
       <div
         className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 ring-2 ${
           state.unlocked
-            ? `bg-white dark:bg-white/[0.08] ${ring}`
+            ? state.pinned
+              ? 'bg-white dark:bg-white/[0.08] ring-ios-orange/70'
+              : `bg-white dark:bg-white/[0.08] ${ring}`
             : 'bg-gray-200/70 dark:bg-white/[0.04] ring-transparent'
         }`}
       >
         {state.unlocked ? (
           <span className="text-3xl leading-none" aria-hidden="true">{def.icon}</span>
+        ) : isHidden ? (
+          <span className="text-2xl font-bold text-ios-gray dark:text-gray-500" aria-hidden="true">?</span>
         ) : (
           <Lock size={20} className="text-ios-gray dark:text-gray-500" />
         )}
@@ -198,19 +325,34 @@ function BadgeTile({ state, onTap }: { state: AchievementWithState; onTap: () =>
       <p className={`text-[11px] font-semibold leading-tight ${
         state.unlocked ? 'text-black dark:text-white' : 'text-ios-gray dark:text-gray-500'
       }`}>
-        {def.title}
+        {displayTitle}
       </p>
-      {!state.unlocked && state.progressLabel && (
+      {!state.unlocked && !isHidden && state.progressLabel && (
         <p className="text-[10px] text-ios-gray dark:text-gray-500 mt-0.5">{state.progressLabel}</p>
       )}
     </button>
   );
 }
 
-function AchievementDetailModal({ state, onClose }: { state: AchievementWithState; onClose: () => void }) {
+function AchievementDetailModal({
+  state,
+  pinnedCount,
+  onTogglePin,
+  onClose,
+}: {
+  state: AchievementWithState;
+  pinnedCount: number;
+  onTogglePin: () => void;
+  onClose: () => void;
+}) {
   const def = state.definition;
   const ring = TIER_RING[def.tier];
   const tierLabels = ['', 'Common', 'Uncommon', 'Rare', 'Legendary'];
+  const isHidden = !state.unlocked && def.hidden === true;
+  const displayTitle = isHidden ? '???' : def.title;
+  const displayDescription = isHidden
+    ? 'Hidden achievement — keep exploring to discover it.'
+    : def.description;
 
   return (
     <div className="fixed inset-0 z-[65] flex items-center justify-center px-6">
@@ -231,22 +373,26 @@ function AchievementDetailModal({ state, onClose }: { state: AchievementWithStat
         >
           {state.unlocked ? (
             <span className="text-4xl leading-none" aria-hidden="true">{def.icon}</span>
+          ) : isHidden ? (
+            <span className="text-4xl font-bold text-ios-gray dark:text-gray-500" aria-hidden="true">?</span>
           ) : (
             <Lock size={28} className="text-ios-gray dark:text-gray-500" />
           )}
         </div>
-        <h2 className="text-xl font-bold text-black dark:text-white">{def.title}</h2>
+        <h2 className="text-xl font-bold text-black dark:text-white">{displayTitle}</h2>
         <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-500 uppercase tracking-wide mt-1">
-          {tierLabels[def.tier]}
+          {isHidden ? 'Secret' : tierLabels[def.tier]}
         </p>
         <p className="text-sm text-ios-gray dark:text-gray-400 mt-3 leading-relaxed">
-          {def.description}
+          {displayDescription}
         </p>
 
         {state.unlocked ? (
           <p className="text-xs text-ios-green font-semibold mt-4">
             Unlocked {state.unlockedAt ? formatDate(state.unlockedAt) : ''}
           </p>
+        ) : isHidden ? (
+          <p className="text-xs text-ios-gray dark:text-gray-400 mt-4">Locked</p>
         ) : state.progressLabel ? (
           <div className="mt-4">
             <div className="h-2 rounded-full bg-gray-200/60 dark:bg-white/10 overflow-hidden">
@@ -263,9 +409,32 @@ function AchievementDetailModal({ state, onClose }: { state: AchievementWithStat
           <p className="text-xs text-ios-gray dark:text-gray-400 mt-4">Locked</p>
         )}
 
+        {state.unlocked && (
+          <button
+            onClick={onTogglePin}
+            className={`mt-6 w-full py-3 rounded-2xl font-semibold text-[15px] active:opacity-80 flex items-center justify-center gap-2 ${
+              state.pinned
+                ? 'bg-yellow-50 text-ios-orange dark:bg-ios-orange/10'
+                : 'bg-gray-100 dark:bg-white/[0.08] text-black dark:text-white'
+            }`}
+          >
+            {state.pinned ? (
+              <>
+                <PinOff size={16} /> Unpin from Showcase
+              </>
+            ) : (
+              <>
+                <Pin size={16} />
+                {pinnedCount >= PIN_LIMIT
+                  ? `Pin (replaces oldest of ${PIN_LIMIT})`
+                  : `Pin to Showcase`}
+              </>
+            )}
+          </button>
+        )}
         <button
           onClick={onClose}
-          className="mt-6 w-full bg-ios-blue text-white py-3 rounded-2xl font-semibold text-[15px] active:opacity-80"
+          className={`${state.unlocked ? 'mt-2' : 'mt-6'} w-full bg-ios-blue text-white py-3 rounded-2xl font-semibold text-[15px] active:opacity-80`}
         >
           Close
         </button>

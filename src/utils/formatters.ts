@@ -74,3 +74,22 @@ export function formatInputDate(date: Date | string | undefined): string {
   if (!isValid(d)) return '';
   return format(d, 'yyyy-MM-dd');
 }
+
+/**
+ * Parse a YYYY-MM-DD form input back into a Date with sensible time:
+ *  - If `fallback` is provided and the input string matches it, preserve the
+ *    fallback's original time (so editing without changing the date keeps the
+ *    record's original timestamp).
+ *  - If the input is today, return `new Date()` (current ms-precision timestamp)
+ *    so time-aware achievements (e.g. Late-Night Logger) can fire.
+ *  - Otherwise (backdated entry), parse as midnight of that day.
+ */
+export function parseFormDate(input: string, fallback?: Date | string): Date {
+  if (fallback != null && formatInputDate(fallback) === input) {
+    return new Date(fallback);
+  }
+  if (input === formatInputDate(new Date())) {
+    return new Date();
+  }
+  return new Date(input);
+}

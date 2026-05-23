@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormField';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { FUEL_GRADES, type FuelRecord, type FuelGrade } from '../../models';
-import { formatInputDate } from '../../utils/formatters';
+import { formatInputDate, parseFormDate } from '../../utils/formatters';
 
 interface Props {
   isOpen: boolean;
@@ -109,7 +109,7 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
     try {
       await onSave({
         vehicleId: form.vehicleId,
-        date: new Date(form.date),
+        date: parseFormDate(form.date, record?.date),
         odometer: Number(form.odometer),
         litres: Number(form.litres),
         totalCost: Number(form.totalCost),

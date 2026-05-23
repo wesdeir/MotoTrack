@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
-import { formatInputDate } from '../../utils/formatters';
+import { formatInputDate, parseFormDate } from '../../utils/formatters';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Textarea } from '../../components/ui/FormField';
@@ -211,7 +211,7 @@ export default function MaintenanceForm({
         vehicleId: form.vehicleId,
         category: form.category,
         title: form.title.trim(),
-        date: new Date(form.date),
+        date: parseFormDate(form.date, record?.date),
         odometer: Number(form.odometer),
         notes: form.notes.trim() || undefined,
         parts: form.parts.filter((p) => p.name.trim()),

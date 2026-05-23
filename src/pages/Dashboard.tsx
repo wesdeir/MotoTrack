@@ -28,6 +28,7 @@ import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
 import HealthScoreCard from '../components/features/HealthScoreCard';
 import AlmostThereCard from '../components/features/AlmostThereCard';
+import ShowcaseCard from '../components/features/ShowcaseCard';
 import ReminderCard from '../components/features/ReminderCard';
 import ReminderForm from '../components/features/ReminderForm';
 import MaintenanceItem from '../components/features/MaintenanceItem';
@@ -61,6 +62,7 @@ export default function Dashboard() {
     totalCount,
     unseenUnlocks,
     streak,
+    pinnedAchievements,
   } = useAchievements();
   const lastShopMap = useMemo(() => buildLastShopMap(maintenance), [maintenance]);
 
@@ -245,6 +247,8 @@ export default function Dashboard() {
           Add Fuel
         </Button>
       </div>
+
+      <ShowcaseCard pinned={pinnedAchievements} hasAnyUnlocked={unlockedCount > 0} />
 
       <AlmostThereCard achievements={achievements} />
 

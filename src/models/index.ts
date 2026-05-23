@@ -147,6 +147,16 @@ export interface ReminderWithStatus extends Reminder {
   progressPercent?: number;
 }
 
+export interface HealthScoreSnapshot {
+  id: string;             // crypto.randomUUID()
+  vehicleId: string;
+  /** YYYY-MM-DD — one snapshot per vehicle per day. */
+  date: string;
+  /** 0..100 score at the time of snapshot. */
+  score: number;
+  createdAt: Date;
+}
+
 export interface UnlockedAchievement {
   id: string;                // crypto.randomUUID()
   achievementId: string;     // matches an entry in ACHIEVEMENTS
@@ -154,4 +164,8 @@ export interface UnlockedAchievement {
   unlockedAt: Date;
   /** True until the user has seen the celebration. Used to show "new" indicators. */
   seen: boolean;
+  /** True when the user has pinned this badge to the Dashboard showcase. */
+  pinned?: boolean;
+  /** When the user pinned the badge — used to order showcase + evict oldest at the cap. */
+  pinnedAt?: Date;
 }

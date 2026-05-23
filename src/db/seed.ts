@@ -411,7 +411,7 @@ export const DEMO_VEHICLE_ID = VEHICLE_ID;
  */
 export async function clearDemoData(): Promise<void> {
   await db.transaction('rw', [
-    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.unlockedAchievements,
+    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.unlockedAchievements, db.healthScoreSnapshots,
   ], async () => {
     await db.vehicles.delete(VEHICLE_ID);
     await Promise.all([
@@ -419,6 +419,7 @@ export async function clearDemoData(): Promise<void> {
       db.fuelRecords.where('vehicleId').equals(VEHICLE_ID).delete(),
       db.reminders.where('vehicleId').equals(VEHICLE_ID).delete(),
       db.unlockedAchievements.where('vehicleId').equals(VEHICLE_ID).delete(),
+      db.healthScoreSnapshots.where('vehicleId').equals(VEHICLE_ID).delete(),
     ]);
   });
 }
@@ -435,7 +436,7 @@ export async function seedDemoData(): Promise<void> {
 
 export async function clearAndReseed(): Promise<void> {
   await db.transaction('rw', [
-    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
+    db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements, db.healthScoreSnapshots,
   ], async () => {
     await Promise.all([
       db.vehicles.clear(),
@@ -444,6 +445,7 @@ export async function clearAndReseed(): Promise<void> {
       db.reminders.clear(),
       db.documents.clear(),
       db.unlockedAchievements.clear(),
+      db.healthScoreSnapshots.clear(),
     ]);
     await db.vehicles.add(vehicle);
     await db.maintenanceRecords.bulkAdd(maintenance);

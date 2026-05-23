@@ -26,7 +26,7 @@ export default function AlmostThereCard({
 }: Props) {
   const closest = useMemo(() => {
     return achievements
-      .filter((a) => !a.unlocked && a.progressFraction >= minProgress)
+      .filter((a) => !a.unlocked && !a.definition.hidden && a.progressFraction >= minProgress)
       .sort((a, b) => b.progressFraction - a.progressFraction)
       .slice(0, limit);
   }, [achievements, minProgress, limit]);

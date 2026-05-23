@@ -78,7 +78,7 @@ export default function HealthScoreCard({ score }: Props) {
             <p className={`text-lg font-bold mt-0.5 ${style.text}`}>
               {score.tierLabel}
             </p>
-            <p className="text-xs text-ios-gray dark:text-gray-400 mt-1 leading-snug line-clamp-2">
+            <p className="text-xs text-ios-gray dark:text-gray-400 mt-1 leading-snug">
               {score.topHint}
             </p>
           </div>

@@ -275,6 +275,17 @@ input[type="datetime-local"] {
   will-change: transform, opacity;
 }
 
+/* Tier-4 unlock screen flash — brief white wash that fades immediately. */
+@keyframes screenFlash {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-screen-flash {
+  animation: screenFlash 0.55s ease-out forwards;
+}
+
 /* ---------------------------------------------------------------------------
    Progress bar
    --------------------------------------------------------------------------- */

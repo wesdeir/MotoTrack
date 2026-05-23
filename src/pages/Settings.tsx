@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
-  ChevronRight, Check, Plus, PencilLine, FileText,
+  ChevronRight, Check, Plus, PencilLine, FileText, Sparkles,
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
 import { useVehicleForm } from '../hooks/useVehicleForm';
@@ -10,8 +10,9 @@ import { useMaintenance } from '../hooks/useMaintenance';
 import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { useTutorial } from '../context/TutorialContext';
+import { useCelebrateUnlocks } from '../hooks/usePreferences';
 import { db } from '../db/database';
-import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument, UnlockedAchievement } from '../models';
+import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument, UnlockedAchievement, HealthScoreSnapshot } from '../models';
 import { vehicleToForm, formToVehicleData } from '../utils/vehicleForm';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
@@ -35,6 +36,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
   const { start: startTutorial, complete: completeTutorial } = useTutorial();
+  const [celebrateUnlocks, setCelebrateUnlocks] = useCelebrateUnlocks();
   const navigate = useNavigate();
 
   const {
@@ -140,15 +142,16 @@ export default function SettingsPage() {
   };
 
   const handleExport = async () => {
-    const [vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements] = await Promise.all([
+    const [vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements, healthScoreSnapshots] = await Promise.all([
       db.vehicles.toArray(),
       db.maintenanceRecords.toArray(),
       db.fuelRecords.toArray(),
       db.reminders.toArray(),
       db.documents.toArray(),
       db.unlockedAchievements.toArray(),
+      db.healthScoreSnapshots.toArray(),
     ]);
-    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements }, null, 2);
+    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements, healthScoreSnapshots }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -171,9 +174,10 @@ export default function SettingsPage() {
         reminders?: unknown[];
         documents?: unknown[];
         unlockedAchievements?: unknown[];
+        healthScoreSnapshots?: unknown[];
       };
       await db.transaction('rw', [
-        db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
+        db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements, db.healthScoreSnapshots,
       ], async () => {
         if (parsed.vehicles?.length) await db.vehicles.bulkPut(parsed.vehicles);
         if (parsed.maintenanceRecords?.length) await db.maintenanceRecords.bulkPut(parsed.maintenanceRecords as MaintenanceRecord[]);
@@ -181,6 +185,7 @@ export default function SettingsPage() {
         if (parsed.reminders?.length) await db.reminders.bulkPut(parsed.reminders as Reminder[]);
         if (parsed.documents?.length) await db.documents.bulkPut(parsed.documents as VehicleDocument[]);
         if (parsed.unlockedAchievements?.length) await db.unlockedAchievements.bulkPut(parsed.unlockedAchievements as UnlockedAchievement[]);
+        if (parsed.healthScoreSnapshots?.length) await db.healthScoreSnapshots.bulkPut(parsed.healthScoreSnapshots as HealthScoreSnapshot[]);
       });
       showToast('Data imported successfully');
     } catch {
@@ -203,7 +208,7 @@ export default function SettingsPage() {
     // Transaction ensures all-or-nothing: a mid-clear failure won't leave the DB in
     // a partially cleared state with dangling records from deleted vehicles.
     await db.transaction('rw', [
-      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
+      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements, db.healthScoreSnapshots,
     ], async () => {
       await Promise.all([
         db.vehicles.clear(),
@@ -212,6 +217,7 @@ export default function SettingsPage() {
         db.reminders.clear(),
         db.documents.clear(),
         db.unlockedAchievements.clear(),
+        db.healthScoreSnapshots.clear(),
       ]);
     });
     // Clear any in-progress tutorial so it doesn't resume mid-step in the new flow.
@@ -397,6 +403,42 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+          </Card>
+        </section>
+
+        {/* Preferences */}
+        <section>
+          <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide px-1 mb-2">
+            Preferences
+          </p>
+          <Card padding={false}>
+            <button
+              onClick={() => setCelebrateUnlocks(!celebrateUnlocks)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-ios-orange/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles size={18} className="text-ios-orange" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-medium text-black dark:text-white">Celebrate unlocks</p>
+                <p className="text-xs text-ios-gray dark:text-gray-400 truncate">
+                  Confetti + haptics when achievements unlock
+                </p>
+              </div>
+              <div
+                role="switch"
+                aria-checked={celebrateUnlocks}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  celebrateUnlocks ? 'bg-ios-green' : 'bg-gray-300 dark:bg-white/[0.15]'
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                    celebrateUnlocks ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </button>
           </Card>
         </section>
 

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 0.7.0** (must match `package.json` `version` field)
+**Current version: 0.8.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -133,17 +133,26 @@ Economy is computed by `enrichFuelRecords()` in `useFuel` hook — `lPer100km`, 
 
 Stored as base64 data URLs in IndexedDB. Compressed via `src/utils/imageUtils.ts` before storage. Shared upload component: `ReceiptUpload.tsx`. Shared viewer: `ReceiptViewer.tsx`. GloveBox documents use the same pattern.
 
-### Gamification (Health Score + Achievements + XP/Levels + Streaks)
+### Gamification
 
-Four retention features that compute purely from existing data — no separate persistence beyond `unlockedAchievements`:
+Eight retention features wired into `useAchievements`. Persistence is minimal — only `unlockedAchievements` + `healthScoreSnapshots` are stored; everything else derives from live data.
 
-- **Vehicle Health Score** (`src/utils/healthScore.ts`): pure 0–100 calculation across four categories (reminders, activity recency, service engagement, documentation). Shown on the Dashboard via `HealthScoreCard.tsx` with a tap-through breakdown modal. Recompute is automatic via `useMemo` over the same live data the Dashboard already loads — no extra hooks, no persistence.
-- **Achievements** (`src/utils/achievements.ts`, `src/hooks/useAchievements.ts`): catalog of ~35 achievements with predicate functions. The hook watches the active vehicle's data and writes unlock rows to `db.unlockedAchievements` (one per achievement-id × vehicle-id pair, idempotent via the `[vehicleId+achievementId]` compound index). Fresh unlocks have `seen=false` until the user dismisses the global `AchievementUnlockToast` (mounted in AppShell) or visits the Achievements page. The toast queues multiple unlocks and shows them sequentially, and bursts CSS confetti for tier 3+ unlocks via `Confetti.tsx`.
-- **XP / Levels** (`src/utils/achievements.ts`): each unlocked badge contributes XP per tier (`XP_BY_TIER` = 10/25/50/100). `calculateLevel(totalXp)` resolves the current `LEVELS` tier (Rookie Driver → Gearhead Legend, 8 levels). Surfaced in the Achievements page header card with a progress bar to the next title. Recomputed via `useMemo` in `useAchievements` — no persistence.
-- **Streaks** (`src/utils/streaks.ts`): `calculateStreak(maintenance, fuel)` returns current/longest consecutive ISO-week active streak. Weeks are Monday-anchored; the current week is treated leniently (a streak ending last week still counts if this week is empty). Fed into the `AchievementContext` so streak-based achievements (Hot Streak / Diligent / Year-Round) can read it. Surfaced as a small "Active streak: N weeks 🔥" row inside the Dashboard vehicle card when current > 0.
-- **"Almost There" widget** (`src/components/features/AlmostThereCard.tsx`): Dashboard card listing the top 3 locked achievements with the highest progress fraction (above a 20% floor). Tap-through to the Achievements page.
+- **Vehicle Health Score** (`src/utils/healthScore.ts`): pure 0–100 calc across four categories (reminders, activity recency, service engagement, documentation). Shown on the Dashboard via `HealthScoreCard.tsx` with a tap-through breakdown modal. Now also computed inside `useAchievements` and exposed to `AchievementContext` so score-based predicates work.
+- **Achievements** (`src/utils/achievements.ts`, `src/hooks/useAchievements.ts`): catalog of **~70 achievements across 9 categories** (service, fuel, reminders, docs, milestone, mastery, streak, health, secret) with predicate functions. The hook watches the active vehicle's data and writes unlock rows to `db.unlockedAchievements` (one per achievement-id × vehicle-id pair, idempotent via the `[vehicleId+achievementId]` compound index). Fresh unlocks have `seen=false` until the user dismisses `AchievementUnlockToast` or visits the Achievements page. Catalog includes themed badges for DIY work and performance/mod culture (keyword-matched against notes + parts).
+- **Hidden achievements** (`AchievementDefinition.hidden`): secret badges render as `???` with a `?` icon and "Hidden achievement — keep exploring" until unlocked. The 4 Easter-egg badges (`lucky-sevens`, `late-night-logger`, `off-by-one`, `new-years-resolution`) are hidden by default. AlmostThereCard filters them out so progress doesn't tease.
+- **XP / Levels** (`src/utils/achievements.ts`): each unlocked badge contributes XP per tier (`XP_BY_TIER` = 10/25/50/100). `calculateLevel(totalXp)` resolves the current `LEVELS` tier — 10 levels from Rookie Driver → Garage Royalty. Surfaced in the Achievements page header card with a progress bar to the next title.
+- **Streaks** (`src/utils/streaks.ts`): `calculateStreak(maintenance, fuel)` returns current/longest consecutive ISO-week active streak (Monday-anchored, lenient about the current week). Streak achievements live in their own `streak` category. Surfaced as "Active streak: N weeks 🔥" inside the Dashboard vehicle card.
+- **"Almost There" widget** (`src/components/features/AlmostThereCard.tsx`): top 3 non-hidden locked achievements with the highest progress fraction (above a 20% floor).
+- **Showcase / Pinned badges** (`ShowcaseCard.tsx` on Dashboard, `togglePin` in `useAchievements`): users can pin up to `PIN_LIMIT` (3) unlocked badges. Pinning when at the cap evicts the oldest pin. Stored as `pinned`/`pinnedAt` columns on `unlockedAchievements` (no separate table — Dexie tolerates the new optional fields without a schema bump). Empty slots show "Pin a badge" hint when the user has any unlocks.
+- **Filters + sort on Achievements page**: pill row (All / Unlocked / In Progress / Locked) plus sort select (Category / Newest / Closest / Tier). When sort = Category, the grouped sections render; other sorts flatten to a single 3-col grid.
+- **Scaled confetti per tier** (`Confetti.tsx`): all unlocks now burst — t1 = 12 monochrome accent pieces / t2 = 24 two-color / t3 = 40 (current) / t4 = 60 + a brief screen flash. Gated by `useCelebrateUnlocks` preference (Settings → Preferences → "Celebrate unlocks"). Also fires `navigator.vibrate` where supported.
+- **Health-score snapshots** (DB v6 `healthScoreSnapshots` table): one row per vehicle per day, written from `useAchievements` whenever the score is computed. Pruned at 60-day rolling window. Powers the `phoenix` achievement (climb from <40 to 80+ within 30 days).
 
-Important: data wipes (`Settings.handleClearAll`, `seed.clearDemoData`, `seed.clearAndReseed`, `useVehicle.deleteVehicle`) and the backup/restore in Settings include the `unlockedAchievements` table — keep them in sync when adding more gamification state. XP / level / streak / "almost there" are derived from live data, so wiping the unlock rows is enough to reset all four.
+**Schema versions to remember:** v1 base · v2 vehicles createdAt index · v3 documents · v4 unlockedAchievements · (v5 skipped — `pinned` added as no-index optional column) · v6 healthScoreSnapshots.
+
+**Date capture for time-aware achievements:** `parseFormDate` in `formatters.ts` is used by Maintenance/Fuel forms. If the picked YYYY-MM-DD matches today, it stamps `Date.now()` (ms precision) so achievements like Late-Night Logger can fire. For backdated entries it parses as midnight. For edits without changing the date it preserves the record's original time.
+
+**Important:** data wipes (`Settings.handleClearAll`, `seed.clearDemoData`, `seed.clearAndReseed`, `useVehicle.deleteVehicle`) and the backup/restore include BOTH `unlockedAchievements` AND `healthScoreSnapshots`. Keep both in sync when adding more state. Everything else (XP, level, streak, Almost There, Showcase) derives from those two tables + the live data, so wiping them resets the gamification layer.
 
 ## Build & Deploy
 
@@ -160,12 +169,13 @@ src/
   components/
     ui/            — Reusable design system components
     features/      — Domain-specific components (FuelItem, MaintenanceItem, ReminderCard,
-                     HealthScoreCard, AlmostThereCard, AchievementUnlockToast, Confetti, etc.)
+                     HealthScoreCard, AlmostThereCard, ShowcaseCard,
+                     AchievementUnlockToast, Confetti, etc.)
     layout/        — AppShell, BottomNav
   context/         — React contexts (Theme, ColorTheme, Tutorial)
   db/              — Dexie database, seed data, init logic
   hooks/           — Custom hooks (useVehicle, useFuel, useMaintenance, useReminders,
-                     useDocuments, useAchievements)
+                     useDocuments, useAchievements, usePreferences)
   models/          — TypeScript interfaces and type constants
   pages/           — Route-level page components
     Maintenance/   — MaintenancePage, MaintenanceForm, TimelineView

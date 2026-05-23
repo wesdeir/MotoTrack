@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import { useAchievements, type AchievementWithState } from '../../hooks/useAchievements';
+import { useCelebrateUnlocks } from '../../hooks/usePreferences';
 import Confetti from './Confetti';
 
 const TIER_GRADIENTS: Record<number, string> = {
@@ -31,9 +32,21 @@ const TIER_LABELS: Record<number, string> = {
  */
 export default function AchievementUnlockToast() {
   const { unseenUnlocks, markUnseenAsSeen } = useAchievements();
+  const [celebrate] = useCelebrateUnlocks();
   const [queue, setQueue] = useState<AchievementWithState[]>([]);
   const [current, setCurrent] = useState<AchievementWithState | null>(null);
   const queuedIdsRef = useRef<Set<string>>(new Set());
+
+  // Haptic feedback on each new unlock pop (no-op on iOS PWA, works on Android).
+  useEffect(() => {
+    if (!current || !celebrate) return;
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      const intensity = current.definition.tier >= 3 ? [40, 30, 80] : 50;
+      try { navigator.vibrate(intensity); } catch {
+        // intentionally swallowed — vibrate is best-effort
+      }
+    }
+  }, [current, celebrate]);
 
   // Append newly-unseen unlocks to the local queue (dedupe against ids already queued).
   useEffect(() => {
@@ -69,15 +82,13 @@ export default function AchievementUnlockToast() {
   const ring = TIER_RINGS[def.tier];
   const tierLabel = TIER_LABELS[def.tier];
 
-  const showConfetti = def.tier >= 3;
-
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-6">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={dismiss}
       />
-      {showConfetti && <Confetti key={def.id} />}
+      {celebrate && <Confetti key={def.id} tier={def.tier} />}
       <div
         className="relative w-full max-w-sm animate-badge-pop"
         onClick={(e) => e.stopPropagation()}
