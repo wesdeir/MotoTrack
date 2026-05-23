@@ -173,6 +173,202 @@ What it actually requires:
 
 - Multi-vehicle garage UX (already in DB, light UI)
 - Cost-of-ownership projections (residual value + maintenance forecast)
-- VIN-based recall lookup (NHTSA already in use for decoding — they expose a recall endpoint too)
-- Maintenance schedule import from owner's manual PDF (use existing PDF tooling + LLM extraction)
 - Cloud backup / cross-device sync (encrypted, optional — would need a backend, currently zero-backend)
+
+---
+
+# Beyond v0.8 — Engagement Roadmap
+
+## Design philosophy (decided 2026-05-23)
+
+**We do NOT chase daily check-ins.** A maintenance app isn't intrinsically daily-use — most owners don't service or fuel daily, so forcing daily logins creates hollow gamification (the Duolingo problem: people open it to maintain streak, not because they want to). That's bad UX and we won't do it.
+
+**Instead: depth over frequency.** When the user *is* in the app, give them rich content to explore — beautiful visualizations, progression discovery, "wait, there's more?" moments, tools that save them real time, personalization. Make each session deep and rewarding. Notifications are for genuinely time-sensitive things (reminder coming due, recall alert), not "come back" guilt.
+
+**Anti-patterns to avoid:**
+- Daily check-in streaks
+- Daily challenges that feel like chores
+- "You haven't visited in 3 days" guilt notifications
+- Wheel-of-fortune / spin-to-win cheese
+
+**Patterns to embrace:**
+- Friction killers (OCR, OEM imports) — when they ARE there, logging takes seconds
+- Visual progression (chains, sparklines, level ladders) — "what's next" pull
+- Special moments (anniversaries, milestones, year-in-review) — rare and emotional, not daily
+- Genuine utility (recall alerts, OEM schedules) — open the app because it solves a real problem
+
+---
+
+## v0.9 — "Depth, not daily" (next batch)
+
+Tutorial polish + visual progression + small delight moments. No new daily mechanics. Ship as a cohesive engagement layer.
+
+### Phase 1: Tutorial rework + Welcome Wrench
+
+Current tutorial is 7 steps and never mentions achievements / health / streaks / pinning — three of the app's most distinctive features. Rework to ~9 steps.
+
+| # | Step | Notes |
+|---|---|---|
+| 1 | Your Dashboard | unchanged |
+| 2 | Quick Actions | unchanged |
+| 3 | **Vehicle Health Score** | NEW — explain 0–100 + 4 categories, highlight `HealthScoreCard`. "Your daily progress signal." |
+| 4 | **Trophy Case + Level** | NEW — auto-nav to `/achievements`, highlight level card. "Every log earns XP. Hit milestones to level up." |
+| 5 | **Pin a badge** | NEW interactive — user taps a pre-unlocked demo badge → pins it. Returns to Dashboard, highlights ShowcaseCard. Has an 8s skip fallback. |
+| 6 | Maintenance Log | was #3 |
+| 7 | Service Reminders | was #4 |
+| 8 | Fuel Tracking | was #5 |
+| 9 | Reports & Insights | was #6 |
+| 10 | **You're all set + reward** | grants the **Welcome Wrench** achievement immediately — first-unlock confetti experience during onboarding |
+
+**Welcome Wrench achievement:** `id: 'welcome-wrench'`, `hidden: true`, `predicate: () => false`. Inserted directly via `db.unlockedAchievements.add(...)` in `TutorialContext.complete()` for the active vehicle. The hook only ever adds rows so a permanently-false predicate is safe.
+
+### Phase 2: Achievement chains (visual progression)
+
+Group related achievement series into visual "chains" on the Achievements page. Each chain shows tier→tier progression with the next link glowing.
+
+**Chains to define:**
+- Service count: First Wrench → Service Veteran → Service Master → Lifer
+- Fuel count: First Fill → Fuel Tracker → Pump Pro → Premium Stick
+- Tenure: Week One → Month One → Anniversary → Two-Year Club → Five-Year Pro
+- Mileage: 100k → 200k → 300k Legend
+- Streak: Hot Streak → Two-Month Steady → Diligent → Half-Year Hero → Year-Round
+- DIY: Solo Wrench → DIY Mechanic → Garage Master → Self-Sufficient
+- Spend: Big Spender → High Roller → Ten-K Club
+
+**Data model:** add `chainId?: string` and `chainOrder?: number` to `AchievementDefinition`. Render as a horizontal chain UI in a new "Tracks" tab on the Achievements page (alongside Category / Newest / Closest / Tier sort modes — add "By Chain"). Chains visualize the rung you're on with the locked rungs ghosted.
+
+### Phase 3: Health score sparkline (use snapshots we already collect)
+
+Phase F already writes daily `healthScoreSnapshots`. We have the data — surface it.
+
+- Mini 60-day sparkline on `HealthScoreCard` (collapsed) under the topHint
+- Expanded version in the breakdown modal showing the line chart with the four-category contributions stacked
+- Use `recharts` (already loaded for Reports page)
+
+### Phase 4: Milestone full-screen celebrations
+
+Crossing 100k / 200k / 300k / every 50k beyond doesn't get a special moment today — it's just a regular achievement toast. Replace with full-screen takeover:
+- Large odometer rolling animation
+- Confetti burst (tier-4 scale)
+- "1 year of MotoTrack" / "100k club" headline
+- Shareable PNG export inline
+- Triggered when `vehicle.currentOdometer` crosses a milestone via odometer update
+
+Persisted: add a `lastCelebratedOdometer: number` field per vehicle so we don't re-celebrate on every reload.
+
+---
+
+## v1.0 — "Ship it to the community"
+
+The version where MotoTrack stops being a personal project and is genuinely worth telling people about. Friction killers + emotional moments.
+
+### Phase 5: Photo OCR for receipts (HIGH-PRIORITY user pick)
+
+The biggest friction in the app today is manual entry. Camera-snap of a gas pump receipt → auto-fill the form.
+
+**Approach options:**
+1. **Tesseract.js** — pure-client, ~2MB lazy-loaded WASM. Free, private (stays on device). Accuracy ~70-80% on receipts, worse on faded ones.
+2. **Cloud OCR API** — Google Cloud Vision / AWS Textract / Mindee receipt API. ~95% accuracy, $0.001-0.01 per scan. Requires backend or direct API call with rate-limited key.
+3. **Hybrid: device + AI vision model** — fetch to an LLM with vision (Claude/GPT-4o) for receipt parsing. Best accuracy + structured output. Requires API key.
+
+**Recommendation:** Tesseract.js first (zero cost, privacy-aligned with offline-first promise). Add cloud fallback if Tesseract accuracy is too low in practice. Lazy-loaded so it doesn't bloat the main bundle.
+
+**Flow:** receipt-upload component grows a "Scan receipt" button → camera intent → OCR → regex-extract amount, date, litres, price/L → pre-fill form fields → user reviews + saves.
+
+### Phase 6: VIN-based OEM maintenance schedule import (HIGH-PRIORITY user pick)
+
+On vehicle setup with VIN, fetch the manufacturer's recommended maintenance schedule and pre-populate reminders. Massive setup-time savings + ensures users have meaningful reminders day one.
+
+**Data source options:**
+1. **NHTSA** — has VIN decode but NOT maintenance schedules
+2. **OEM owner-portal APIs** — Toyota, Ford, GM each have proprietary APIs requiring partnerships. Not viable.
+3. **Carfax/Carmd API** — paid, ~$0.05-0.20 per VIN lookup, returns recommended schedule
+4. **Crowdsourced / static dataset** — build our own JSON dataset of common schedules by make/model/year. Free, but maintenance work, less coverage
+5. **LLM extraction from owner's manual PDFs** — user uploads their manual, LLM extracts schedule. Cool but requires LLM API
+
+**Recommendation:** Start with a curated JSON dataset for the top 30 makes (covers 80% of NA market). Add Carmd as a paid fallback for "long tail" vehicles. LLM extraction in v1.x as a power-user feature.
+
+**Flow:** during vehicle setup after VIN decode → "We found 8 recommended services for your vehicle. Add them?" → user previews + checks/unchecks → reminders populated.
+
+### Phase 7: Year-in-Review (Wrapped-style)
+
+First time the user opens the app in January, modal slideshow: "you logged $X, drove Y km, averaged Z L/100km, unlocked N badges, longest streak W weeks, top service category." Per-slide animation, shareable PNG at the end. The kind of thing people post.
+
+Suppress automatically if the vehicle has < 6 months of data (would be empty).
+
+### Phase 8: Vehicle anniversary celebrations
+
+When `vehicle.createdAt` anniversary passes, on next app open: "🎂 Civic SiR turns 2 in MotoTrack today!" + year-in-mini-numbers + a special "Anniversary" achievement (one per year). Pure delight moment.
+
+---
+
+## v1.1 — Genuine daily utility (notification-worthy)
+
+These are the features that earn the right to push a notification, because there's a real reason the user needs to know NOW.
+
+### Phase 9: VIN recall alerts (NHTSA)
+
+NHTSA exposes a recall lookup endpoint. On VIN decode, check for active recalls. Re-check weekly in the background.
+
+- Display as an urgent banner on the vehicle card (above health score)
+- Push notification when a new recall is detected (genuine safety, not nag)
+- Tap → modal with recall details + manufacturer remedy
+
+### Phase 10: Push notifications (iOS 16.4+ PWA support)
+
+Only for time-sensitive events:
+- Reminder coming due in 7 days
+- New recall detected
+- Streak about to break (single Sunday-evening reminder — opt-in, easy to disable)
+
+Settings → Notifications panel with granular toggles per category. Default: all off, user opts in.
+
+### Phase 11: Siri Shortcuts / Web Share Target
+
+"Hey Siri, log gas" → opens MotoTrack to FuelForm. Web Share Target lets users share photos from anywhere → opens receipt upload. Zero-friction logging.
+
+### Phase 12: Apple Wallet pass for vehicle docs
+
+Insurance card + registration as Wallet passes with expiry. Locks the app into the daily wallet rotation without forcing app opens.
+
+---
+
+## v1.2 — In-app depth (the long tail of "more to explore")
+
+12. **Fun facts** — auto-generated weekly: "your odometer = Toronto to Vancouver round trip × 3" / "you've burned 1,200 L — that's a backyard pool"
+13. **Achievement timeline** — chronological feed (was Phase G in v0.8 roadmap, still relevant)
+14. **Special unlock animations per achievement** — Hall of Famer ≠ First Wrench. Custom backgrounds / longer dwell for legendary unlocks
+15. **Trophy case PNG share** — was Phase H in v0.8 roadmap, still relevant
+16. **Vehicle profile card** — shareable PNG with photo, key stats, top achievements
+17. **Easter eggs not in the catalog** — Konami code, version-number tap → secret badges
+18. **Achievement notifications for almost-there** — toast on cross of 50% / 90% progress on long-grind achievements (subtle, not nagging)
+
+---
+
+## Implementation order (next session)
+
+Recommended start: **v0.9 in this order** (smallest → largest, momentum building):
+
+1. **Health score sparkline** — smallest win, data already collected, ~1 hour
+2. **Tutorial rework + Welcome Wrench** — concrete and contained, ~2 hours
+3. **Milestone celebrations** — small, delightful, ~1.5 hours
+4. **Achievement chains** — medium, requires UI design + chain definitions, ~3 hours
+
+Total v0.9: ~7-8 hours. Ships as a cohesive "in-app depth" release.
+
+Then v1.0 batches (each is its own version):
+5. **Photo OCR** — Tesseract.js integration, lazy-loaded, fallback flow
+6. **OEM schedule import** — curated JSON dataset for top 30 makes + reminder pre-population
+7. **Year-in-Review** + **Vehicle anniversary** — bundle as "moments" release
+
+Then v1.1 (utility tier):
+8. **Recall alerts** — NHTSA recall endpoint integration
+9. **Push notifications** — iOS PWA support, reminder/recall/streak triggers
+10. **Siri Shortcuts** + **Apple Wallet pass** — native integrations
+
+### Open decisions (revisit when starting each phase)
+
+- OCR: Tesseract first or jump straight to cloud OCR?
+- OEM schedules: build curated dataset ourselves or pay for an API?
+- Push notifications: subdomain certificate situation for iOS PWA — needs investigation
+- Year-in-Review: trigger January 1 specifically or first launch each calendar year?
