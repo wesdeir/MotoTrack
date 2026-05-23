@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import { useAchievements, type AchievementWithState } from '../../hooks/useAchievements';
+import Confetti from './Confetti';
 
 const TIER_GRADIENTS: Record<number, string> = {
   1: 'from-ios-blue/30 to-ios-blue/0',
@@ -68,12 +69,15 @@ export default function AchievementUnlockToast() {
   const ring = TIER_RINGS[def.tier];
   const tierLabel = TIER_LABELS[def.tier];
 
+  const showConfetti = def.tier >= 3;
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-6">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={dismiss}
       />
+      {showConfetti && <Confetti key={def.id} />}
       <div
         className="relative w-full max-w-sm animate-badge-pop"
         onClick={(e) => e.stopPropagation()}

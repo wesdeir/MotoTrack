@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
-import { ChevronRight, Wrench, Droplets, FolderOpen, Trophy } from 'lucide-react';
+import { ChevronRight, Wrench, Droplets, FolderOpen, Trophy, Flame } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
@@ -27,6 +27,7 @@ import { formatOdometer, formatCurrency, formatDate } from '../utils/formatters'
 import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
 import HealthScoreCard from '../components/features/HealthScoreCard';
+import AlmostThereCard from '../components/features/AlmostThereCard';
 import ReminderCard from '../components/features/ReminderCard';
 import ReminderForm from '../components/features/ReminderForm';
 import MaintenanceItem from '../components/features/MaintenanceItem';
@@ -54,7 +55,13 @@ export default function Dashboard() {
   );
   const lastFuel = useMemo(() => fuel[0] ?? null, [fuel]);
   const { documents } = useDocuments(vehicle?.id);
-  const { unlockedCount, totalCount, unseenUnlocks } = useAchievements();
+  const {
+    achievements,
+    unlockedCount,
+    totalCount,
+    unseenUnlocks,
+    streak,
+  } = useAchievements();
   const lastShopMap = useMemo(() => buildLastShopMap(maintenance), [maintenance]);
 
   const thisYearSpend = useMemo(() => {
@@ -199,6 +206,22 @@ export default function Dashboard() {
               {unlockedCount} / {totalCount}
             </span>
           </Link>
+          {streak.current > 0 && (
+            <div className="flex items-center justify-between w-full">
+              <span className="flex items-center gap-1.5 text-xs text-ios-gray dark:text-gray-400">
+                <Flame size={12} className="text-ios-orange" />
+                Active streak
+              </span>
+              <span className="text-xs font-semibold text-ios-orange">
+                {streak.current} {streak.current === 1 ? 'week' : 'weeks'}
+                {streak.longest > streak.current && (
+                  <span className="text-ios-gray dark:text-gray-500 font-normal ml-1">
+                    · best {streak.longest}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -222,6 +245,8 @@ export default function Dashboard() {
           Add Fuel
         </Button>
       </div>
+
+      <AlmostThereCard achievements={achievements} />
 
       {/* Action needed */}
       {urgentReminders.length > 0 && (

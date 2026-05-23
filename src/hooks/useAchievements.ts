@@ -7,10 +7,15 @@ import { useFuel } from './useFuel';
 import { useDocuments } from './useDocuments';
 import {
   ACHIEVEMENTS,
+  calculateLevel,
+  calculateXp,
   evaluateAchievements,
+  maxXp,
   type AchievementContext,
   type AchievementDefinition,
+  type LevelInfo,
 } from '../utils/achievements';
+import { calculateStreak, type StreakInfo } from '../utils/streaks';
 import type { Reminder, UnlockedAchievement } from '../models';
 
 export interface AchievementWithState {
@@ -50,6 +55,11 @@ export function useAchievements() {
     [vehicle?.id],
   );
 
+  const streak: StreakInfo = useMemo(
+    () => calculateStreak(maintenance, fuel),
+    [maintenance, fuel],
+  );
+
   // Persist newly-satisfied achievements. Skips already-unlocked ids and writes
   // one row per newly satisfied id. Each write is idempotent guarded by the
   // [vehicleId+achievementId] index.
@@ -65,6 +75,7 @@ export function useAchievements() {
       fuel,
       reminders: rawReminders,
       documents,
+      streak,
     };
 
     const satisfied = new Set(evaluateAchievements(ctx));
@@ -89,7 +100,7 @@ export function useAchievements() {
     db.unlockedAchievements.bulkAdd(rows).finally(() => {
       writingRef.current = false;
     });
-  }, [vehicle, maintenance, fuel, rawReminders, documents, unlocked]);
+  }, [vehicle, maintenance, fuel, rawReminders, documents, unlocked, streak]);
 
   const merged: AchievementWithState[] = useMemo(() => {
     if (!vehicle) return [];
@@ -100,6 +111,7 @@ export function useAchievements() {
       fuel,
       reminders: rawReminders ?? [],
       documents,
+      streak,
     };
 
     return ACHIEVEMENTS.map((def) => {
@@ -115,7 +127,7 @@ export function useAchievements() {
         progressLabel: prog?.label,
       };
     });
-  }, [vehicle, maintenance, fuel, rawReminders, documents, unlocked]);
+  }, [vehicle, maintenance, fuel, rawReminders, documents, unlocked, streak]);
 
   /** Newly-unlocked, unseen achievements. Used by the celebration toast. */
   const unseenUnlocks = useMemo(
@@ -125,6 +137,13 @@ export function useAchievements() {
 
   const unlockedCount = merged.filter((m) => m.unlocked).length;
   const totalCount = merged.length;
+
+  const totalXp = useMemo(
+    () => calculateXp((unlocked ?? []).map((u) => u.achievementId)),
+    [unlocked],
+  );
+  const levelInfo: LevelInfo = useMemo(() => calculateLevel(totalXp), [totalXp]);
+  const maxAvailableXp = useMemo(() => maxXp(), []);
 
   /** Mark all unseen unlocks as seen — call when the toast has been shown. */
   const markUnseenAsSeen = async (ids: string[]) => {
@@ -144,6 +163,10 @@ export function useAchievements() {
     unseenUnlocks,
     unlockedCount,
     totalCount,
+    totalXp,
+    maxXp: maxAvailableXp,
+    levelInfo,
+    streak,
     markUnseenAsSeen,
   };
 }

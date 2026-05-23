@@ -31,7 +31,16 @@ const TIER_RING: Record<number, string> = {
 
 export default function AchievementsPage() {
   const { vehicle } = useVehicle();
-  const { achievements, unlockedCount, totalCount, unseenUnlocks, markUnseenAsSeen } = useAchievements();
+  const {
+    achievements,
+    unlockedCount,
+    totalCount,
+    unseenUnlocks,
+    totalXp,
+    maxXp,
+    levelInfo,
+    markUnseenAsSeen,
+  } = useAchievements();
   const [detail, setDetail] = useState<AchievementWithState | null>(null);
 
   // Visiting this page counts as seeing the unseen unlocks — clear the "new" indicator.
@@ -75,16 +84,18 @@ export default function AchievementsPage() {
   }
 
   const pct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
+  const levelPct = Math.round(levelInfo.progressFraction * 100);
+  const atMaxLevel = levelInfo.xpForNextLevel == null;
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title="Achievements"
-        subtitle={`${unlockedCount} of ${totalCount} unlocked`}
+        subtitle={`Level ${levelInfo.level} • ${unlockedCount} of ${totalCount} unlocked`}
       />
 
       <div className="flex-1 overflow-y-auto scroll-area px-4 pb-8 space-y-5">
-        {/* Overall progress */}
+        {/* Level + overall progress */}
         <Card>
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0">
@@ -97,15 +108,24 @@ export default function AchievementsPage() {
                   strokeDasharray={`${(pct / 100) * 2 * Math.PI * 26} ${2 * Math.PI * 26}`}
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-base font-bold text-ios-blue">{pct}%</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[10px] font-semibold text-ios-gray dark:text-gray-400 leading-none">LVL</span>
+                <span className="text-lg font-bold text-ios-blue leading-none mt-0.5">{levelInfo.level}</span>
               </div>
             </div>
-            <div>
-              <p className="text-[15px] font-bold text-black dark:text-white">Trophy Case</p>
-              <p className="text-xs text-ios-gray dark:text-gray-400 mt-0.5 leading-snug">
-                Keep logging services, fuel, and reminders to unlock more.
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-bold text-black dark:text-white truncate">{levelInfo.title}</p>
+              <p className="text-[11px] text-ios-gray dark:text-gray-400 mt-0.5">
+                {atMaxLevel
+                  ? `${totalXp} / ${maxXp} XP — max level reached`
+                  : `${totalXp} XP • ${(levelInfo.xpForNextLevel ?? 0) - levelInfo.xpIntoLevel} to ${levelInfo.nextTitle}`}
               </p>
+              <div className="mt-2 h-2 rounded-full bg-gray-200/60 dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-ios-blue transition-all duration-500"
+                  style={{ width: `${atMaxLevel ? 100 : Math.max(3, levelPct)}%` }}
+                />
+              </div>
             </div>
           </div>
         </Card>

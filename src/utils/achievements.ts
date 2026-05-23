@@ -7,6 +7,7 @@ import type {
   VehicleDocument,
   MaintenanceCategory,
 } from '../models';
+import type { StreakInfo } from './streaks';
 
 export type AchievementCategory = 'service' | 'fuel' | 'reminders' | 'docs' | 'milestone' | 'mastery';
 
@@ -16,6 +17,8 @@ export interface AchievementContext {
   fuel: FuelRecord[];
   reminders: Reminder[];
   documents: VehicleDocument[];
+  /** Weekly activity streak (Monday-anchored ISO weeks). */
+  streak: StreakInfo;
 }
 
 export interface AchievementProgress {
@@ -56,6 +59,46 @@ function totalMaintenanceSpend(records: MaintenanceRecord[]): number {
 
 function daysSinceVehicle(vehicle: Vehicle): number {
   return Math.max(0, differenceInDays(new Date(), new Date(vehicle.createdAt)));
+}
+
+function normalizeShop(shop: string | undefined): string | null {
+  if (!shop) return null;
+  const cleaned = shop.trim().toLowerCase();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function distinctShops(records: MaintenanceRecord[]): number {
+  const set = new Set<string>();
+  for (const r of records) {
+    const s = normalizeShop(r.shop);
+    if (s) set.add(s);
+  }
+  return set.size;
+}
+
+function maxServicesAtSameShop(records: MaintenanceRecord[]): number {
+  const counts = new Map<string, number>();
+  for (const r of records) {
+    const s = normalizeShop(r.shop);
+    if (!s) continue;
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  let max = 0;
+  for (const v of counts.values()) if (v > max) max = v;
+  return max;
+}
+
+function hasGapThenComeback(records: MaintenanceRecord[], fuel: FuelRecord[], days: number): boolean {
+  const allDates = [
+    ...records.map((r) => new Date(r.date).getTime()),
+    ...fuel.map((r) => new Date(r.date).getTime()),
+  ].sort((a, b) => a - b);
+  if (allDates.length < 2) return false;
+  const gapMs = days * 24 * 60 * 60 * 1000;
+  for (let i = 1; i < allDates.length; i++) {
+    if (allDates[i] - allDates[i - 1] >= gapMs) return true;
+  }
+  return false;
 }
 
 function makeProgress(current: number, target: number): AchievementProgress {
@@ -130,6 +173,21 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: '🛣️', category: 'fuel', tier: 3,
     predicate: ({ fuel }) =>
       fuel.some((r) => r.kmTravelled != null && r.kmTravelled >= 800 && r.fullTank),
+  },
+  {
+    id: 'highway-star', title: 'Highway Star',
+    description: 'Cover 1,000+ km on a single full tank.',
+    icon: '🌌', category: 'fuel', tier: 4,
+    predicate: ({ fuel }) =>
+      fuel.some((r) => r.kmTravelled != null && r.kmTravelled >= 1000 && r.fullTank),
+  },
+  {
+    id: 'fuel-snob', title: 'Premium Tastes',
+    description: 'Log 10 premium-grade fuel records.',
+    icon: '💎', category: 'fuel', tier: 2,
+    predicate: ({ fuel }) => fuel.filter((r) => r.fuelGrade === 'premium').length >= 10,
+    progress: ({ fuel }) =>
+      makeProgress(fuel.filter((r) => r.fuelGrade === 'premium').length, 10),
   },
 
   // ------------------------- Reminders -------------------------
@@ -213,6 +271,33 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 365,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 365),
   },
+  {
+    id: 'hot-streak', title: 'Hot Streak',
+    description: 'Log activity 4 weeks in a row.',
+    icon: '🔥', category: 'milestone', tier: 2,
+    predicate: ({ streak }) => streak.current >= 4 || streak.longest >= 4,
+    progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 4),
+  },
+  {
+    id: 'diligent', title: 'Diligent',
+    description: 'Log activity 12 weeks in a row.',
+    icon: '⚡', category: 'milestone', tier: 3,
+    predicate: ({ streak }) => streak.current >= 12 || streak.longest >= 12,
+    progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 12),
+  },
+  {
+    id: 'year-round', title: 'Year-Round',
+    description: 'Log activity 52 weeks in a row.',
+    icon: '🌠', category: 'milestone', tier: 4,
+    predicate: ({ streak }) => streak.current >= 52 || streak.longest >= 52,
+    progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 52),
+  },
+  {
+    id: 'comeback-kid', title: 'Comeback Kid',
+    description: 'Log activity after a 90+ day gap.',
+    icon: '🔄', category: 'milestone', tier: 2,
+    predicate: ({ maintenance, fuel }) => hasGapThenComeback(maintenance, fuel, 90),
+  },
 
   // ------------------------- Mastery -------------------------
   {
@@ -242,6 +327,36 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     progress: ({ maintenance }) =>
       makeProgress(Math.floor(totalMaintenanceSpend(maintenance)), 1000),
   },
+  {
+    id: 'big-spender-pro', title: 'High Roller',
+    description: 'Log $5,000 in tracked maintenance.',
+    icon: '💰', category: 'mastery', tier: 3,
+    predicate: ({ maintenance }) => totalMaintenanceSpend(maintenance) >= 5000,
+    progress: ({ maintenance }) =>
+      makeProgress(Math.floor(totalMaintenanceSpend(maintenance)), 5000),
+  },
+  {
+    id: 'loyal-customer', title: 'Loyal Customer',
+    description: '5 services at the same shop.',
+    icon: '🏪', category: 'mastery', tier: 2,
+    predicate: ({ maintenance }) => maxServicesAtSameShop(maintenance) >= 5,
+    progress: ({ maintenance }) => makeProgress(maxServicesAtSameShop(maintenance), 5),
+  },
+  {
+    id: 'shop-hopper', title: 'Shop Hopper',
+    description: 'Services at 3 different shops.',
+    icon: '🗺️', category: 'mastery', tier: 2,
+    predicate: ({ maintenance }) => distinctShops(maintenance) >= 3,
+    progress: ({ maintenance }) => makeProgress(distinctShops(maintenance), 3),
+  },
+  {
+    id: 'annual-inspector', title: 'Annual Inspector',
+    description: 'Log 2 inspection records.',
+    icon: '🔍', category: 'mastery', tier: 2,
+    predicate: ({ maintenance }) => countByCategory(maintenance, 'inspection') >= 2,
+    progress: ({ maintenance }) =>
+      makeProgress(countByCategory(maintenance, 'inspection'), 2),
+  },
 ];
 
 export function getAchievement(id: string): AchievementDefinition | undefined {
@@ -251,4 +366,98 @@ export function getAchievement(id: string): AchievementDefinition | undefined {
 /** Returns the ids of every achievement currently satisfied by the context. */
 export function evaluateAchievements(ctx: AchievementContext): string[] {
   return ACHIEVEMENTS.filter((a) => a.predicate(ctx)).map((a) => a.id);
+}
+
+// --- XP / Levels ----------------------------------------------------------
+
+/** XP awarded for unlocking an achievement of a given tier. */
+export const XP_BY_TIER: Record<1 | 2 | 3 | 4, number> = {
+  1: 10,
+  2: 25,
+  3: 50,
+  4: 100,
+};
+
+/** Sum of XP for the unlocked achievement ids. Unknown ids are ignored. */
+export function calculateXp(unlockedIds: Iterable<string>): number {
+  let total = 0;
+  for (const id of unlockedIds) {
+    const def = getAchievement(id);
+    if (def) total += XP_BY_TIER[def.tier];
+  }
+  return total;
+}
+
+/** Total XP available if every achievement is unlocked. */
+export function maxXp(): number {
+  return ACHIEVEMENTS.reduce((sum, a) => sum + XP_BY_TIER[a.tier], 0);
+}
+
+export interface LevelTier {
+  /** 1-indexed. */
+  level: number;
+  /** Cumulative XP required to enter this level. */
+  minXp: number;
+  /** Driver-themed title for this level. */
+  title: string;
+}
+
+/** Level breakpoints. Tuned so the first few unlocks feel rewarding,
+ *  and the top tiers require deep engagement (most achievements + tier 4s). */
+export const LEVELS: LevelTier[] = [
+  { level: 1,  minXp: 0,    title: 'Rookie Driver' },
+  { level: 2,  minXp: 50,   title: 'Garage Newbie' },
+  { level: 3,  minXp: 125,  title: 'Wrench Apprentice' },
+  { level: 4,  minXp: 225,  title: 'Weekend Tinkerer' },
+  { level: 5,  minXp: 350,  title: 'Shop Regular' },
+  { level: 6,  minXp: 500,  title: 'Seasoned Owner' },
+  { level: 7,  minXp: 700,  title: 'Master Mechanic' },
+  { level: 8,  minXp: 950,  title: 'Gearhead Legend' },
+];
+
+export interface LevelInfo {
+  /** 1-indexed current level. */
+  level: number;
+  title: string;
+  /** XP earned within the current level (0..xpForNextLevel). */
+  xpIntoLevel: number;
+  /** XP needed to reach the next level. `null` when at max level. */
+  xpForNextLevel: number | null;
+  /** 0..1 progress toward the next level (1 at max). */
+  progressFraction: number;
+  /** Title of the next level, or `null` at max. */
+  nextTitle: string | null;
+}
+
+/** Resolves the current level + progress toward the next from a total XP value. */
+export function calculateLevel(totalXp: number): LevelInfo {
+  let currentIdx = 0;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (totalXp >= LEVELS[i].minXp) currentIdx = i;
+    else break;
+  }
+  const current = LEVELS[currentIdx];
+  const next = LEVELS[currentIdx + 1];
+
+  if (!next) {
+    return {
+      level: current.level,
+      title: current.title,
+      xpIntoLevel: totalXp - current.minXp,
+      xpForNextLevel: null,
+      progressFraction: 1,
+      nextTitle: null,
+    };
+  }
+
+  const xpIntoLevel = totalXp - current.minXp;
+  const xpForNextLevel = next.minXp - current.minXp;
+  return {
+    level: current.level,
+    title: current.title,
+    xpIntoLevel,
+    xpForNextLevel,
+    progressFraction: Math.max(0, Math.min(1, xpIntoLevel / xpForNextLevel)),
+    nextTitle: next.title,
+  };
 }
