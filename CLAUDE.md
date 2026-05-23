@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 1.0.0** (must match `package.json` `version` field)
+**Current version: 1.1.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -161,6 +161,10 @@ Eight retention features wired into `useAchievements`. Persistence is minimal �
 - **Year-in-Review** (`YearInReview.tsx`, `YearInReviewManager.tsx`, `src/utils/yearStats.ts`): Spotify-Wrapped-style modal slideshow with annual stats (km driven, services, fuel, achievements, top category). Auto-triggers on first launch in a new calendar year for vehicles with ≥3 log entries from the previous year. Per-vehicle flag (`mototrack-yir-shown-${year}-${vehicleId}`) blocks re-fire. Settings → Preferences → "Replay last year's wrap" dispatches a window event the manager listens for, bypassing the flag.
 - **Vehicle Anniversary** (`VehicleAnniversaryCelebration.tsx`, `VehicleAnniversaryManager.tsx`): full-screen celebration when the vehicle's `createdAt` anniversary date passes. Once-per-year per vehicle via `Vehicle.lastAnniversaryCelebrated` (calendar year number). Shows mini-stats over the trailing 365 days. Pure delight moment — no new achievement (existing `year-one`/`two-year-club`/`five-year-pro` chain covers the milestone side).
 
+### v1.1 — Safety
+
+- **NHTSA recall alerts** (`src/utils/recalls.ts`, `useRecalls.ts`, `RecallCard.tsx`): fetches active recalls for the active vehicle's year/make/model from NHTSA's free public API. Tries the full model first ("F-150", "Model 3") then falls back to the first word ("Civic" from "Civic SiR (EP3)") and merges results — handles users who packed trim info into the model string. 7-day cache in localStorage keyed by `${year}:${make}:${model}`. Banner appears on the Dashboard above the Health Score; do-not-drive recalls (`parkIt`) escalate the visual to red. Tap-through modal shows each recall with NHTSA campaign link + per-recall "Mark Resolved" (stored in localStorage as `mototrack-recall-ack:${vehicleId}:${campaignNumber}`). All data is best-effort — fetch failures fall through silently to "no recalls shown."
+
 **Schema versions to remember:** v1 base · v2 vehicles createdAt index · v3 documents · v4 unlockedAchievements · (v5 skipped — `pinned` added as no-index optional column) · v6 healthScoreSnapshots.
 
 **Date capture for time-aware achievements:** `parseFormDate` in `formatters.ts` is used by Maintenance/Fuel forms. If the picked YYYY-MM-DD matches today, it stamps `Date.now()` (ms precision) so achievements like Late-Night Logger can fire. For backdated entries it parses as midnight. For edits without changing the date it preserves the record's original time.
@@ -186,7 +190,8 @@ src/
                      AchievementUnlockToast, Confetti, MilestoneCelebration,
                      MilestoneCelebrationManager, RecommendedRemindersModal,
                      YearInReview, YearInReviewManager,
-                     VehicleAnniversaryCelebration, VehicleAnniversaryManager, etc.)
+                     VehicleAnniversaryCelebration, VehicleAnniversaryManager,
+                     RecallCard, etc.)
     layout/        — AppShell, BottomNav
   context/         — React contexts (Theme, ColorTheme, Tutorial)
   db/              — Dexie database, seed data, init logic
@@ -199,7 +204,7 @@ src/
     Achievements   — Badge wall (single file: Achievements.tsx)
   utils/           — Pure functions (formatters, calculations, VIN decoder, image utils,
                      PDF export, healthScore, achievements, streaks, ocr,
-                     recommendedSchedule, yearStats)
+                     recommendedSchedule, yearStats, recalls)
 ```
 
 ## Gotchas

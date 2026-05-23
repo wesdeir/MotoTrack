@@ -29,6 +29,7 @@ import StatCard from '../components/ui/StatCard';
 import HealthScoreCard from '../components/features/HealthScoreCard';
 import AlmostThereCard from '../components/features/AlmostThereCard';
 import ShowcaseCard from '../components/features/ShowcaseCard';
+import RecallCard from '../components/features/RecallCard';
 import ReminderCard from '../components/features/ReminderCard';
 import ReminderForm from '../components/features/ReminderForm';
 import MaintenanceItem from '../components/features/MaintenanceItem';
@@ -227,6 +228,8 @@ export default function Dashboard() {
           )}
         </div>
       </Card>
+
+      <RecallCard vehicle={vehicle} />
 
       {healthScore && <HealthScoreCard score={healthScore} snapshots={healthSnapshots} />}
 
