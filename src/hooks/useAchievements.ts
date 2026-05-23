@@ -314,6 +314,8 @@ export function useAchievements() {
     maxXp: maxAvailableXp,
     levelInfo,
     streak,
+    healthScore,
+    healthSnapshots: healthSnapshots ?? [],
     markUnseenAsSeen,
     togglePin,
   };

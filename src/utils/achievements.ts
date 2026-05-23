@@ -59,7 +59,34 @@ export interface AchievementDefinition {
   progress?: (ctx: AchievementContext) => AchievementProgress;
   /** When true, the badge wall shows ??? until unlocked. Used for Easter eggs. */
   hidden?: boolean;
+  /** Group ID for chained achievements (visual progression on the badge wall). */
+  chainId?: string;
+  /** Position within the chain (1-indexed, ascending). */
+  chainOrder?: number;
 }
+
+export interface ChainDefinition {
+  id: string;
+  title: string;
+  /** Short tagline shown under the chain name. */
+  description: string;
+}
+
+/** Visual progression series for related achievements. Ordering here drives
+ *  display order on the Achievements page in "Chains" view. */
+export const CHAINS: ChainDefinition[] = [
+  { id: 'service-count', title: 'Service Count',  description: 'Log more service records to climb the ranks.' },
+  { id: 'fuel-count',    title: 'Fuel Logs',      description: 'Track every fill-up.' },
+  { id: 'streak',        title: 'Weekly Streak',  description: 'Consecutive weeks of activity.' },
+  { id: 'mileage',       title: 'Odometer',       description: 'Distance milestones.' },
+  { id: 'tenure',        title: 'Tenure',         description: 'Years tracking this vehicle.' },
+  { id: 'diy',           title: 'DIY',            description: 'Services completed without a shop.' },
+  { id: 'spend',         title: 'Spend',          description: 'Total maintenance investment.' },
+  { id: 'receipts',      title: 'Receipts',       description: 'Photos attached to service records.' },
+  { id: 'premium-fuel',  title: 'Premium Fuel',   description: 'Fills logged as premium grade.' },
+  { id: 'brakes',        title: 'Brake Work',     description: 'Brake services completed.' },
+  { id: 'health',        title: 'Vehicle Health', description: 'Health score milestones.' },
+];
 
 // --- helpers --------------------------------------------------------------
 
@@ -341,24 +368,28 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'first-service', title: 'First Wrench', description: 'Log your first service record.',
     icon: '🔧', category: 'service', tier: 1,
+    chainId: 'service-count', chainOrder: 1,
     predicate: ({ maintenance }) => maintenance.length >= 1,
     progress: ({ maintenance }) => makeProgress(maintenance.length, 1),
   },
   {
     id: 'service-ten', title: 'Service Veteran', description: 'Log 10 service records.',
     icon: '🛠️', category: 'service', tier: 2,
+    chainId: 'service-count', chainOrder: 2,
     predicate: ({ maintenance }) => maintenance.length >= 10,
     progress: ({ maintenance }) => makeProgress(maintenance.length, 10),
   },
   {
     id: 'service-fifty', title: 'Service Master', description: 'Log 50 service records.',
     icon: '🏆', category: 'service', tier: 3,
+    chainId: 'service-count', chainOrder: 3,
     predicate: ({ maintenance }) => maintenance.length >= 50,
     progress: ({ maintenance }) => makeProgress(maintenance.length, 50),
   },
   {
     id: 'service-hundred', title: 'Lifer', description: 'Log 100 service records.',
     icon: '🌟', category: 'service', tier: 4,
+    chainId: 'service-count', chainOrder: 4,
     predicate: ({ maintenance }) => maintenance.length >= 100,
     progress: ({ maintenance }) => makeProgress(maintenance.length, 100),
   },
@@ -367,18 +398,21 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'first-fuel', title: 'First Fill', description: 'Log your first fuel record.',
     icon: '⛽', category: 'fuel', tier: 1,
+    chainId: 'fuel-count', chainOrder: 1,
     predicate: ({ fuel }) => fuel.length >= 1,
     progress: ({ fuel }) => makeProgress(fuel.length, 1),
   },
   {
     id: 'fuel-ten', title: 'Fuel Tracker', description: 'Log 10 fuel records.',
     icon: '🚙', category: 'fuel', tier: 2,
+    chainId: 'fuel-count', chainOrder: 2,
     predicate: ({ fuel }) => fuel.length >= 10,
     progress: ({ fuel }) => makeProgress(fuel.length, 10),
   },
   {
     id: 'fuel-fifty', title: 'Pump Pro', description: 'Log 50 fuel records.',
     icon: '⛽', category: 'fuel', tier: 3,
+    chainId: 'fuel-count', chainOrder: 3,
     predicate: ({ fuel }) => fuel.length >= 50,
     progress: ({ fuel }) => makeProgress(fuel.length, 50),
   },
@@ -411,6 +445,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'fuel-snob', title: 'Premium Tastes',
     description: 'Log 10 premium-grade fuel records.',
     icon: '💎', category: 'fuel', tier: 2,
+    chainId: 'premium-fuel', chainOrder: 1,
     predicate: ({ fuel }) => fuel.filter((r) => r.fuelGrade === 'premium').length >= 10,
     progress: ({ fuel }) =>
       makeProgress(fuel.filter((r) => r.fuelGrade === 'premium').length, 10),
@@ -434,12 +469,14 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'first-receipt', title: 'Paper Trail', description: 'Attach a receipt to a service record.',
     icon: '🧾', category: 'docs', tier: 1,
+    chainId: 'receipts', chainOrder: 1,
     predicate: ({ maintenance }) => maintenance.some((r) => !!r.receiptImage),
   },
   {
     id: 'receipt-collector', title: 'Receipt Collector',
     description: 'Attach receipts to 10 service records.',
     icon: '📂', category: 'docs', tier: 2,
+    chainId: 'receipts', chainOrder: 2,
     predicate: ({ maintenance }) =>
       maintenance.filter((r) => !!r.receiptImage).length >= 10,
     progress: ({ maintenance }) =>
@@ -459,6 +496,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'milestone-100k', title: '100k Club',
     description: 'Track a vehicle past 100,000.',
     icon: '🏁', category: 'milestone', tier: 2,
+    chainId: 'mileage', chainOrder: 1,
     predicate: ({ vehicle }) => vehicle.currentOdometer >= 100_000,
     progress: ({ vehicle }) => makeProgress(vehicle.currentOdometer, 100_000),
   },
@@ -466,6 +504,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'milestone-200k', title: '200k Club',
     description: 'Track a vehicle past 200,000.',
     icon: '🏁', category: 'milestone', tier: 3,
+    chainId: 'mileage', chainOrder: 2,
     predicate: ({ vehicle }) => vehicle.currentOdometer >= 200_000,
     progress: ({ vehicle }) => makeProgress(vehicle.currentOdometer, 200_000),
   },
@@ -473,6 +512,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'milestone-300k', title: '300k Legend',
     description: 'Track a vehicle past 300,000.',
     icon: '🥇', category: 'milestone', tier: 4,
+    chainId: 'mileage', chainOrder: 3,
     predicate: ({ vehicle }) => vehicle.currentOdometer >= 300_000,
     progress: ({ vehicle }) => makeProgress(vehicle.currentOdometer, 300_000),
   },
@@ -480,6 +520,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'week-one', title: 'First Week',
     description: 'Track a vehicle for 7 days.',
     icon: '📅', category: 'milestone', tier: 1,
+    chainId: 'tenure', chainOrder: 1,
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 7,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 7),
   },
@@ -487,6 +528,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'month-one', title: 'One Month In',
     description: 'Track a vehicle for 30 days.',
     icon: '🗓️', category: 'milestone', tier: 2,
+    chainId: 'tenure', chainOrder: 2,
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 30,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 30),
   },
@@ -494,6 +536,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'year-one', title: 'Anniversary',
     description: 'Track a vehicle for a full year.',
     icon: '🎉', category: 'milestone', tier: 3,
+    chainId: 'tenure', chainOrder: 3,
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 365,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 365),
   },
@@ -501,6 +544,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'hot-streak', title: 'Hot Streak',
     description: 'Log activity 4 weeks in a row.',
     icon: '🔥', category: 'streak', tier: 2,
+    chainId: 'streak', chainOrder: 1,
     predicate: ({ streak }) => streak.current >= 4 || streak.longest >= 4,
     progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 4),
   },
@@ -508,6 +552,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'two-month-steady', title: 'Two-Month Steady',
     description: 'Log activity 8 weeks in a row.',
     icon: '🧗', category: 'streak', tier: 2,
+    chainId: 'streak', chainOrder: 2,
     predicate: ({ streak }) => streak.current >= 8 || streak.longest >= 8,
     progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 8),
   },
@@ -515,6 +560,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'diligent', title: 'Diligent',
     description: 'Log activity 12 weeks in a row.',
     icon: '⚡', category: 'streak', tier: 3,
+    chainId: 'streak', chainOrder: 3,
     predicate: ({ streak }) => streak.current >= 12 || streak.longest >= 12,
     progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 12),
   },
@@ -522,6 +568,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'half-year-hero', title: 'Half-Year Hero',
     description: 'Log activity 26 weeks in a row.',
     icon: '🛤️', category: 'streak', tier: 3,
+    chainId: 'streak', chainOrder: 4,
     predicate: ({ streak }) => streak.current >= 26 || streak.longest >= 26,
     progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 26),
   },
@@ -529,6 +576,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'year-round', title: 'Year-Round',
     description: 'Log activity 52 weeks in a row.',
     icon: '🌠', category: 'streak', tier: 4,
+    chainId: 'streak', chainOrder: 5,
     predicate: ({ streak }) => streak.current >= 52 || streak.longest >= 52,
     progress: ({ streak }) => makeProgress(Math.max(streak.current, streak.longest), 52),
   },
@@ -549,6 +597,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'brake-boss', title: 'Brake Boss', description: 'Complete 3 brake services.',
     icon: '🛑', category: 'mastery', tier: 2,
+    chainId: 'brakes', chainOrder: 1,
     predicate: ({ maintenance }) => countByCategory(maintenance, 'brakes') >= 3,
     progress: ({ maintenance }) => makeProgress(countByCategory(maintenance, 'brakes'), 3),
   },
@@ -563,6 +612,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'big-spender', title: 'Big Spender',
     description: 'Log $1,000 in tracked maintenance.',
     icon: '💸', category: 'mastery', tier: 2,
+    chainId: 'spend', chainOrder: 1,
     predicate: ({ maintenance }) => totalMaintenanceSpend(maintenance) >= 1000,
     progress: ({ maintenance }) =>
       makeProgress(Math.floor(totalMaintenanceSpend(maintenance)), 1000),
@@ -571,6 +621,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'big-spender-pro', title: 'High Roller',
     description: 'Log $5,000 in tracked maintenance.',
     icon: '💰', category: 'mastery', tier: 3,
+    chainId: 'spend', chainOrder: 2,
     predicate: ({ maintenance }) => totalMaintenanceSpend(maintenance) >= 5000,
     progress: ({ maintenance }) =>
       makeProgress(Math.floor(totalMaintenanceSpend(maintenance)), 5000),
@@ -624,6 +675,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'brake-master', title: 'Brake Master',
     description: 'Complete 10 brake services.',
     icon: '🦾', category: 'service', tier: 3,
+    chainId: 'brakes', chainOrder: 2,
     predicate: ({ maintenance }) => countByCategory(maintenance, 'brakes') >= 10,
     progress: ({ maintenance }) => makeProgress(countByCategory(maintenance, 'brakes'), 10),
   },
@@ -665,6 +717,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'premium-stick', title: 'Premium Stick',
     description: 'Log 25 premium-grade fills.',
     icon: '💠', category: 'fuel', tier: 3,
+    chainId: 'premium-fuel', chainOrder: 2,
     predicate: ({ fuel }) => countByGrade(fuel, 'premium') >= 25,
     progress: ({ fuel }) => makeProgress(countByGrade(fuel, 'premium'), 25),
   },
@@ -689,6 +742,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'ten-k-club', title: 'Ten-K Club',
     description: 'Log $10,000 in tracked maintenance.',
     icon: '🏦', category: 'mastery', tier: 4,
+    chainId: 'spend', chainOrder: 3,
     predicate: ({ maintenance }) => totalMaintenanceSpend(maintenance) >= 10000,
     progress: ({ maintenance }) =>
       makeProgress(Math.floor(totalMaintenanceSpend(maintenance)), 10000),
@@ -743,6 +797,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'two-year-club', title: 'Two-Year Club',
     description: 'Track a vehicle for 2 years.',
     icon: '🪴', category: 'milestone', tier: 3,
+    chainId: 'tenure', chainOrder: 4,
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 730,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 730),
   },
@@ -750,6 +805,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'five-year-pro', title: 'Five-Year Pro',
     description: 'Track a vehicle for 5 years.',
     icon: '🌳', category: 'milestone', tier: 4,
+    chainId: 'tenure', chainOrder: 5,
     predicate: (ctx) => daysSinceVehicle(ctx.vehicle) >= 1825,
     progress: (ctx) => makeProgress(daysSinceVehicle(ctx.vehicle), 1825),
   },
@@ -783,12 +839,14 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'solo-wrench', title: 'Solo Wrench',
     description: 'Log your first DIY service (no shop set).',
     icon: '🔩', category: 'mastery', tier: 1,
+    chainId: 'diy', chainOrder: 1,
     predicate: ({ maintenance }) => countDiyServices(maintenance) >= 1,
   },
   {
     id: 'diy-mechanic', title: 'DIY Mechanic',
     description: 'Log 5 services with no shop set.',
     icon: '👨‍🔧', category: 'mastery', tier: 2,
+    chainId: 'diy', chainOrder: 2,
     predicate: ({ maintenance }) => countDiyServices(maintenance) >= 5,
     progress: ({ maintenance }) => makeProgress(countDiyServices(maintenance), 5),
   },
@@ -796,6 +854,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'garage-master', title: 'Garage Master',
     description: 'Complete 15 DIY services.',
     icon: '🏠', category: 'mastery', tier: 3,
+    chainId: 'diy', chainOrder: 3,
     predicate: ({ maintenance }) => countDiyServices(maintenance) >= 15,
     progress: ({ maintenance }) => makeProgress(countDiyServices(maintenance), 15),
   },
@@ -881,6 +940,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'healthy', title: 'Healthy',
     description: 'Reach a vehicle health score of 80 or higher.',
     icon: '💚', category: 'health', tier: 2,
+    chainId: 'health', chainOrder: 1,
     predicate: ({ healthScore }) => healthScore.total >= 80,
     progress: ({ healthScore }) => makeProgress(healthScore.total, 80),
   },
@@ -888,6 +948,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     id: 'perfect-score', title: 'Perfect Score',
     description: 'Reach a vehicle health score of 100.',
     icon: '🏅', category: 'health', tier: 4,
+    chainId: 'health', chainOrder: 2,
     predicate: ({ healthScore }) => healthScore.total >= 100,
     progress: ({ healthScore }) => makeProgress(healthScore.total, 100),
   },
@@ -904,6 +965,16 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
       }
       return false;
     },
+  },
+
+  // ------------------------- Tutorial completion (v0.9) -------------------------
+  // Granted directly from TutorialBanner.handleComplete — predicate is a no-op
+  // false because this badge has no organic unlock condition.
+  {
+    id: 'welcome-wrench', title: 'Welcome Wrench',
+    description: 'Complete the guided tour and earn your first badge.',
+    icon: '🎓', category: 'milestone', tier: 1, hidden: true,
+    predicate: () => false,
   },
 ];
 

@@ -52,6 +52,10 @@ export interface Vehicle {
   currency: 'CAD' | 'USD';
   createdAt: Date;
   updatedAt: Date;
+  /** Highest odometer milestone that's been celebrated. Crossings past this
+   *  trigger a full-screen celebration. Initialized to currentOdometer on
+   *  first detection so existing high-mileage vehicles don't blast on upgrade. */
+  lastCelebratedOdometer?: number;
 }
 
 export interface MaintenanceRecord {

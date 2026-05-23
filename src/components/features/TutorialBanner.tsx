@@ -4,6 +4,7 @@ import { ChevronRight, X } from 'lucide-react';
 import { useTutorial } from '../../context/TutorialContext';
 import { useVehicle } from '../../hooks/useVehicle';
 import Button from '../ui/Button';
+import { db } from '../../db/database';
 
 const VehicleSetupModal = lazy(() => import('./VehicleSetupModal'));
 
@@ -28,9 +29,27 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     route: '/',
+    title: 'Vehicle Health Score',
+    body: 'A 0–100 signal across reminders, recent activity, service history, and documents. Tap for the full breakdown.',
+    highlight: 'health-score',
+  },
+  {
+    route: '/',
     title: 'Quick Actions',
-    body: 'Tap Log Service or Add Fuel right from the Dashboard — no tab-switching needed.',
+    body: 'Tap Log Service or Add Fuel right from the Dashboard — no tab-switching needed. Every log earns XP.',
     highlight: 'quick-actions',
+  },
+  {
+    route: '/achievements',
+    title: 'Level Up',
+    body: '70+ achievements across 9 categories. Earn XP, climb the level ladder, hunt secret badges. Tap any badge to see how to unlock it.',
+    highlight: 'level-card',
+  },
+  {
+    route: '/',
+    title: 'Showcase Your Best',
+    body: 'Pin up to 3 favorite badges to feature them on your Dashboard. Tap any unlocked achievement → Pin to Showcase.',
+    highlight: 'showcase',
   },
   {
     route: '/maintenance',
@@ -59,7 +78,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     route: '/',
     title: 'You\'re all set!',
-    body: 'That\'s the full tour. Ready to set up your own vehicle?',
+    body: 'That\'s the full tour. Finishing earns you a special badge — your first unlock.',
     isLast: true,
   },
 ];
@@ -90,6 +109,33 @@ export default function TutorialBanner() {
     const nextStep = TUTORIAL_STEPS[step + 1];
     if (nextStep) navigate(nextStep.route);
     advance();
+  };
+
+  /**
+   * Finish the tutorial AND grant the Welcome Wrench achievement against the
+   * currently-active vehicle. Idempotent — the compound [vehicleId+achievementId]
+   * index blocks duplicates if the user replays the tutorial.
+   *
+   * KNOWN LIMITATION: if the user finishes via "Set Up My Vehicle" the badge
+   * lands on the demo vehicle, which gets wiped seconds later. Future fix
+   * (tracked in TODO) — store a localStorage flag and have useAchievements
+   * back-grant on first vehicle creation if missing.
+   */
+  const handleComplete = async () => {
+    if (vehicle) {
+      try {
+        await db.unlockedAchievements.add({
+          id: crypto.randomUUID(),
+          vehicleId: vehicle.id,
+          achievementId: 'welcome-wrench',
+          unlockedAt: new Date(),
+          seen: false,
+        });
+      } catch {
+        // Index collision — already unlocked. Fine.
+      }
+    }
+    complete();
   };
 
   return (
@@ -140,7 +186,7 @@ export default function TutorialBanner() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={complete}
+                    onClick={handleComplete}
                   >
                     Keep Exploring
                   </Button>
@@ -152,7 +198,7 @@ export default function TutorialBanner() {
                   </Button>
                 </>
               ) : (
-                <Button size="sm" onClick={complete}>
+                <Button size="sm" onClick={handleComplete}>
                   Finish
                 </Button>
               )

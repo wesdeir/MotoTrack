@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Fragment } from 'react';
 import { Lock, Pin, PinOff, Trophy } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useAchievements, PIN_LIMIT, type AchievementWithState } from '../hooks/useAchievements';
 import { useVehicle } from '../hooks/useVehicle';
+import { useTutorialHighlight } from '../hooks/useTutorialHighlight';
 import { formatDate } from '../utils/formatters';
-import type { AchievementCategory } from '../utils/achievements';
+import { CHAINS, type AchievementCategory } from '../utils/achievements';
 
 const CATEGORY_LABELS: Record<AchievementCategory, string> = {
   service:    'Service',
@@ -33,7 +35,7 @@ const TIER_RING: Record<number, string> = {
 };
 
 type FilterMode = 'all' | 'unlocked' | 'in-progress' | 'locked';
-type SortMode = 'category' | 'newest' | 'closest' | 'tier';
+type SortMode = 'category' | 'chains' | 'newest' | 'closest' | 'tier';
 
 const FILTER_LABELS: Record<FilterMode, string> = {
   all:           'All',
@@ -44,6 +46,7 @@ const FILTER_LABELS: Record<FilterMode, string> = {
 
 const SORT_LABELS: Record<SortMode, string> = {
   category: 'Category',
+  chains:   'Chains',
   newest:   'Newest',
   closest:  'Closest',
   tier:     'Tier',
@@ -147,6 +150,7 @@ export default function AchievementsPage() {
   const pct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
   const levelPct = Math.round(levelInfo.progressFraction * 100);
   const atMaxLevel = levelInfo.xpForNextLevel == null;
+  const levelHighlight = useTutorialHighlight('level-card');
 
   return (
     <div className="flex flex-col h-full">
@@ -157,7 +161,7 @@ export default function AchievementsPage() {
 
       <div className="flex-1 overflow-y-auto scroll-area px-4 pb-8 space-y-5">
         {/* Level + overall progress */}
-        <Card>
+        <Card className={levelHighlight}>
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0">
               <svg width="64" height="64" className="-rotate-90">
@@ -252,6 +256,8 @@ export default function AchievementsPage() {
               </section>
             );
           })
+        ) : sort === 'chains' ? (
+          <ChainsView achievements={filtered} onTap={setDetail} />
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {sortedFlat.map((a) => (
@@ -275,6 +281,132 @@ export default function AchievementsPage() {
           onClose={() => setDetail(null)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Renders achievements grouped into visual progression chains. Each chain shows
+ * its links as a horizontal sequence — unlocked badges in colour, locked ones
+ * ghosted, the "next to unlock" highlighted with a glow ring.
+ *
+ * Hidden achievements are filtered out (they live in `secret` category, which
+ * doesn't have a chain anyway). Chains with fewer than 2 visible links are
+ * skipped — a "chain" of one isn't a chain.
+ */
+function ChainsView({
+  achievements,
+  onTap,
+}: {
+  achievements: AchievementWithState[];
+  onTap: (a: AchievementWithState) => void;
+}) {
+  const chains = CHAINS.map((chain) => {
+    const links = achievements
+      .filter(
+        (a) =>
+          a.definition.chainId === chain.id &&
+          !(a.definition.hidden && !a.unlocked),
+      )
+      .sort(
+        (a, b) =>
+          (a.definition.chainOrder ?? 0) - (b.definition.chainOrder ?? 0),
+      );
+    return {
+      chain,
+      links,
+      unlockedCount: links.filter((l) => l.unlocked).length,
+    };
+  }).filter((c) => c.links.length >= 2);
+
+  if (chains.length === 0) {
+    return (
+      <Card className="text-center py-8">
+        <p className="text-sm text-ios-gray dark:text-gray-400">
+          No chains match this filter.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {chains.map(({ chain, links, unlockedCount }) => {
+        const allUnlocked = unlockedCount === links.length;
+        const nextIndex = links.findIndex((l) => !l.unlocked);
+        return (
+          <Card key={chain.id}>
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-black dark:text-white">
+                  {chain.title}
+                </p>
+                <p className="text-[11px] text-ios-gray dark:text-gray-400 leading-snug mt-0.5">
+                  {chain.description}
+                </p>
+              </div>
+              <div className={`flex-shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                allUnlocked
+                  ? 'bg-ios-green/15 text-ios-green'
+                  : 'bg-gray-100 dark:bg-white/[0.08] text-ios-gray dark:text-gray-400'
+              }`}>
+                {unlockedCount} / {links.length}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {links.map((link, i) => {
+                const isNext = !link.unlocked && i === nextIndex;
+                const prevUnlocked = i > 0 && links[i - 1].unlocked;
+                const ring = TIER_RING[link.definition.tier];
+                return (
+                  <Fragment key={link.definition.id}>
+                    {i > 0 && (
+                      <div className="flex-1 min-w-[10px] h-0.5 rounded-full overflow-hidden bg-gray-200 dark:bg-white/[0.08]">
+                        {prevUnlocked && (
+                          <div
+                            className={`h-full transition-all duration-500 ${
+                              link.unlocked ? 'bg-ios-green w-full' : 'bg-ios-green/60 w-1/2'
+                            }`}
+                          />
+                        )}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => onTap(link)}
+                      className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center ring-2 active:scale-95 transition-transform ${
+                        link.unlocked
+                          ? `bg-white dark:bg-white/[0.08] ${ring}`
+                          : isNext
+                          ? 'bg-blue-50 dark:bg-ios-blue/[0.10] ring-ios-blue shadow-ios-glow'
+                          : 'bg-gray-100 dark:bg-white/[0.04] ring-transparent'
+                      }`}
+                      aria-label={link.definition.title}
+                    >
+                      {link.unlocked ? (
+                        <span className="text-xl leading-none" aria-hidden="true">
+                          {link.definition.icon}
+                        </span>
+                      ) : (
+                        <Lock size={14} className={isNext ? 'text-ios-blue' : 'text-ios-gray dark:text-gray-500'} />
+                      )}
+                    </button>
+                  </Fragment>
+                );
+              })}
+            </div>
+
+            {/* Next-to-unlock hint */}
+            {!allUnlocked && nextIndex >= 0 && (
+              <p className="text-[11px] text-ios-gray dark:text-gray-400 mt-2.5 leading-snug">
+                <span className="text-ios-blue font-semibold">Next:</span>{' '}
+                {links[nextIndex].definition.title}
+                {links[nextIndex].progressLabel ? ` (${links[nextIndex].progressLabel})` : ''}
+              </p>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }

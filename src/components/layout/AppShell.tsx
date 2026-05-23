@@ -2,6 +2,7 @@ import BottomNav from './BottomNav';
 import { useSwipeNavigation } from '../../hooks/useSwipeNavigation';
 import TutorialBanner from '../features/TutorialBanner';
 import AchievementUnlockToast from '../features/AchievementUnlockToast';
+import MilestoneCelebrationManager from '../features/MilestoneCelebrationManager';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   useSwipeNavigation();
@@ -19,6 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <TutorialBanner />
       <BottomNav />
       <AchievementUnlockToast />
+      <MilestoneCelebrationManager />
     </div>
   );
 }

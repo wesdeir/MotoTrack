@@ -63,6 +63,7 @@ export default function Dashboard() {
     unseenUnlocks,
     streak,
     pinnedAchievements,
+    healthSnapshots,
   } = useAchievements();
   const lastShopMap = useMemo(() => buildLastShopMap(maintenance), [maintenance]);
 
@@ -227,7 +228,7 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {healthScore && <HealthScoreCard score={healthScore} />}
+      {healthScore && <HealthScoreCard score={healthScore} snapshots={healthSnapshots} />}
 
       <div className={`flex gap-3 rounded-2xl ${hlQuickActions}`}>
         <Button

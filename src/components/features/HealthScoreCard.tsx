@@ -1,42 +1,51 @@
 import { useState } from 'react';
 import { ChevronRight, Heart, X } from 'lucide-react';
 import Card from '../ui/Card';
+import HealthSparkline from './HealthSparkline';
+import { useTutorialHighlight } from '../../hooks/useTutorialHighlight';
 import type { HealthScore, HealthTier } from '../../utils/healthScore';
+import type { HealthScoreSnapshot } from '../../models';
 
-const TIER_STYLES: Record<HealthTier, { ring: string; text: string; bg: string; chip: string }> = {
+const TIER_STYLES: Record<HealthTier, {
+  ring: string;
+  text: string;
+  bg: string;
+  chip: string;
+  stroke: string;
+  fill: string;
+}> = {
   excellent: {
-    ring: 'stroke-ios-green',
-    text: 'text-ios-green',
-    bg:   'bg-green-50 dark:bg-ios-green/10',
-    chip: 'bg-ios-green/15 text-ios-green',
+    ring: 'stroke-ios-green', text: 'text-ios-green',
+    bg: 'bg-green-50 dark:bg-ios-green/10', chip: 'bg-ios-green/15 text-ios-green',
+    stroke: 'stroke-ios-green', fill: 'fill-ios-green',
   },
   good: {
-    ring: 'stroke-ios-blue',
-    text: 'text-ios-blue',
-    bg:   'bg-blue-50 dark:bg-ios-blue/10',
-    chip: 'bg-ios-blue/15 text-ios-blue',
+    ring: 'stroke-ios-blue', text: 'text-ios-blue',
+    bg: 'bg-blue-50 dark:bg-ios-blue/10', chip: 'bg-ios-blue/15 text-ios-blue',
+    stroke: 'stroke-ios-blue', fill: 'fill-ios-blue',
   },
   fair: {
-    ring: 'stroke-ios-orange',
-    text: 'text-ios-orange',
-    bg:   'bg-orange-50 dark:bg-ios-orange/10',
-    chip: 'bg-ios-orange/15 text-ios-orange',
+    ring: 'stroke-ios-orange', text: 'text-ios-orange',
+    bg: 'bg-orange-50 dark:bg-ios-orange/10', chip: 'bg-ios-orange/15 text-ios-orange',
+    stroke: 'stroke-ios-orange', fill: 'fill-ios-orange',
   },
   critical: {
-    ring: 'stroke-ios-red',
-    text: 'text-ios-red',
-    bg:   'bg-red-50 dark:bg-ios-red/10',
-    chip: 'bg-ios-red/15 text-ios-red',
+    ring: 'stroke-ios-red', text: 'text-ios-red',
+    bg: 'bg-red-50 dark:bg-ios-red/10', chip: 'bg-ios-red/15 text-ios-red',
+    stroke: 'stroke-ios-red', fill: 'fill-ios-red',
   },
 };
 
 interface Props {
   score: HealthScore;
+  snapshots?: HealthScoreSnapshot[];
 }
 
-export default function HealthScoreCard({ score }: Props) {
+export default function HealthScoreCard({ score, snapshots = [] }: Props) {
   const [open, setOpen] = useState(false);
   const style = TIER_STYLES[score.tier];
+  const hasTrend = snapshots.length >= 2;
+  const highlight = useTutorialHighlight('health-score');
 
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
@@ -44,7 +53,7 @@ export default function HealthScoreCard({ score }: Props) {
 
   return (
     <>
-      <Card onClick={() => setOpen(true)} className="relative">
+      <Card onClick={() => setOpen(true)} className={`relative ${highlight}`}>
         <div className="flex items-center gap-4">
           {/* Ring */}
           <div className="relative flex-shrink-0">
@@ -81,18 +90,37 @@ export default function HealthScoreCard({ score }: Props) {
             <p className="text-xs text-ios-gray dark:text-gray-400 mt-1 leading-snug">
               {score.topHint}
             </p>
+            {hasTrend && (
+              <div className="mt-2 -mb-1">
+                <HealthSparkline
+                  snapshots={snapshots}
+                  width={200}
+                  height={22}
+                  strokeClass={style.stroke}
+                  fillClass={style.fill}
+                />
+              </div>
+            )}
           </div>
 
           <ChevronRight size={18} className="text-gray-300 dark:text-white/25 flex-shrink-0" />
         </div>
       </Card>
 
-      {open && <HealthScoreModal score={score} onClose={() => setOpen(false)} />}
+      {open && <HealthScoreModal score={score} snapshots={snapshots} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function HealthScoreModal({ score, onClose }: { score: HealthScore; onClose: () => void }) {
+function HealthScoreModal({
+  score,
+  snapshots,
+  onClose,
+}: {
+  score: HealthScore;
+  snapshots: HealthScoreSnapshot[];
+  onClose: () => void;
+}) {
   const style = TIER_STYLES[score.tier];
   const categories = [
     score.categories.reminders,
@@ -100,6 +128,7 @@ function HealthScoreModal({ score, onClose }: { score: HealthScore; onClose: () 
     score.categories.engagement,
     score.categories.documentation,
   ];
+  const hasTrend = snapshots.length >= 2;
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col justify-end">
@@ -135,6 +164,31 @@ function HealthScoreModal({ score, onClose }: { score: HealthScore; onClose: () 
               {score.tierLabel}
             </div>
           </div>
+
+          {/* Trend sparkline */}
+          {hasTrend && (
+            <div className="pb-4">
+              <div className="flex items-center justify-between mb-1.5 px-1">
+                <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
+                  Last {snapshots.length} {snapshots.length === 1 ? 'day' : 'days'}
+                </p>
+                <p className="text-[11px] text-ios-gray dark:text-gray-500">
+                  daily snapshots
+                </p>
+              </div>
+              <div className="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-2">
+                <HealthSparkline
+                  snapshots={snapshots}
+                  width={280}
+                  height={80}
+                  showArea
+                  showYAxis
+                  strokeClass={style.stroke}
+                  fillClass={style.fill}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Category breakdown */}
           <div className="space-y-3">

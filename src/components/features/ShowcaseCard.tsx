@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, Pin } from 'lucide-react';
 import Card from '../ui/Card';
+import { useTutorialHighlight } from '../../hooks/useTutorialHighlight';
 import type { AchievementWithState } from '../../hooks/useAchievements';
 
 interface Props {
@@ -21,6 +22,8 @@ const TIER_RING: Record<number, string> = {
  * Empty slots prompt the user to pin badges from the Achievements page.
  */
 export default function ShowcaseCard({ pinned, hasAnyUnlocked }: Props) {
+  const highlight = useTutorialHighlight('showcase');
+
   // Only render when there's something to showcase OR there are unlocked badges
   // to suggest pinning. Don't show during the "no unlocks yet" early game —
   // would be confusing and empty.
@@ -33,7 +36,7 @@ export default function ShowcaseCard({ pinned, hasAnyUnlocked }: Props) {
   ];
 
   return (
-    <Card padding={false} className="overflow-hidden">
+    <Card padding={false} className={`overflow-hidden ${highlight}`}>
       <Link to="/achievements" className="block p-4 active:opacity-80">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
