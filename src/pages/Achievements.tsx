@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Fragment } from 'react';
-import { Lock, Pin, PinOff, Trophy } from 'lucide-react';
+import { Fragment, useRef } from 'react';
+import { Lock, Pin, PinOff, Share2, Trophy } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -9,6 +9,8 @@ import { useAchievements, PIN_LIMIT, type AchievementWithState } from '../hooks/
 import { useVehicle } from '../hooks/useVehicle';
 import { useTutorialHighlight } from '../hooks/useTutorialHighlight';
 import { formatDate } from '../utils/formatters';
+import { captureElementToPng, shareOrDownloadPng } from '../utils/sharePng';
+import TrophyShareCard from '../components/features/TrophyShareCard';
 import { CHAINS, type AchievementCategory } from '../utils/achievements';
 
 const CATEGORY_LABELS: Record<AchievementCategory, string> = {
@@ -35,7 +37,7 @@ const TIER_RING: Record<number, string> = {
 };
 
 type FilterMode = 'all' | 'unlocked' | 'in-progress' | 'locked';
-type SortMode = 'category' | 'chains' | 'newest' | 'closest' | 'tier';
+type SortMode = 'category' | 'chains' | 'timeline' | 'newest' | 'closest' | 'tier';
 
 const FILTER_LABELS: Record<FilterMode, string> = {
   all:           'All',
@@ -47,9 +49,17 @@ const FILTER_LABELS: Record<FilterMode, string> = {
 const SORT_LABELS: Record<SortMode, string> = {
   category: 'Category',
   chains:   'Chains',
+  timeline: 'Timeline',
   newest:   'Newest',
   closest:  'Closest',
   tier:     'Tier',
+};
+
+const TIER_LABEL: Record<number, string> = {
+  1: 'Common',
+  2: 'Uncommon',
+  3: 'Rare',
+  4: 'Legendary',
 };
 
 export default function AchievementsPage() {
@@ -69,6 +79,30 @@ export default function AchievementsPage() {
   const [detail, setDetail] = useState<AchievementWithState | null>(null);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [sort, setSort] = useState<SortMode>('category');
+  const [sharing, setSharing] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = async () => {
+    if (!vehicle) return;
+    setSharing(true);
+    // Wait two frames so the off-screen share card has rendered before capture.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    try {
+      if (shareCardRef.current) {
+        const blob = await captureElementToPng(shareCardRef.current, {
+          background: '#080E1C',
+          scale: 2,
+        });
+        await shareOrDownloadPng(blob, 'mototrack-trophy-case.png', 'My MotoTrack Trophy Case');
+      }
+    } catch {
+      // best-effort
+    } finally {
+      setSharing(false);
+    }
+  };
 
   // Visiting this page counts as seeing the unseen unlocks — clear the "new" indicator.
   useEffect(() => {
@@ -157,6 +191,19 @@ export default function AchievementsPage() {
       <PageHeader
         title="Achievements"
         subtitle={`Level ${levelInfo.level} • ${unlockedCount} of ${totalCount} unlocked`}
+        action={
+          unlockedCount > 0 ? (
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={sharing}
+              aria-label="Share trophy case"
+              className="w-9 h-9 rounded-full bg-white/40 dark:bg-white/[0.08] border border-white/60 dark:border-white/[0.10] flex items-center justify-center active:opacity-70 disabled:opacity-50"
+            >
+              <Share2 size={16} className="text-ios-blue" />
+            </button>
+          ) : null
+        }
       />
 
       <div className="flex-1 overflow-y-auto scroll-area px-4 pb-8 space-y-5">
@@ -258,6 +305,8 @@ export default function AchievementsPage() {
           })
         ) : sort === 'chains' ? (
           <ChainsView achievements={filtered} onTap={setDetail} />
+        ) : sort === 'timeline' ? (
+          <TimelineView achievements={achievements} onTap={setDetail} />
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {sortedFlat.map((a) => (
@@ -280,6 +329,24 @@ export default function AchievementsPage() {
           onTogglePin={() => togglePin(detail.definition.id)}
           onClose={() => setDetail(null)}
         />
+      )}
+
+      {/* Off-screen share card — only mounted while capture is in flight */}
+      {sharing && vehicle && (
+        <div
+          aria-hidden="true"
+          style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
+        >
+          <TrophyShareCard
+            ref={shareCardRef}
+            vehicle={vehicle}
+            achievements={achievements}
+            unlockedCount={unlockedCount}
+            totalCount={totalCount}
+            totalXp={totalXp}
+            levelInfo={levelInfo}
+          />
+        </div>
       )}
     </div>
   );
@@ -408,6 +475,131 @@ function ChainsView({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Chronological feed of unlocked achievements grouped by recency. Locked
+ * achievements are excluded entirely — the timeline is about your history,
+ * not your future.
+ */
+function TimelineView({
+  achievements,
+  onTap,
+}: {
+  achievements: AchievementWithState[];
+  onTap: (a: AchievementWithState) => void;
+}) {
+  const unlocked = achievements
+    .filter((a) => a.unlocked && a.unlockedAt)
+    .sort((a, b) => {
+      const aT = new Date(a.unlockedAt!).getTime();
+      const bT = new Date(b.unlockedAt!).getTime();
+      return bT - aT;
+    });
+
+  if (unlocked.length === 0) {
+    return (
+      <Card className="text-center py-8">
+        <Trophy size={32} className="text-ios-gray dark:text-gray-500 mx-auto mb-3" />
+        <p className="text-sm text-ios-gray dark:text-gray-400">
+          No unlocks yet — your timeline starts with your first badge.
+        </p>
+      </Card>
+    );
+  }
+
+  // Group by period
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startOfWeek = startOfToday - 7 * dayMs;
+  const startOfMonth = startOfToday - 30 * dayMs;
+
+  const groups: { label: string; items: AchievementWithState[] }[] = [
+    { label: 'Today',       items: [] },
+    { label: 'Yesterday',   items: [] },
+    { label: 'This Week',   items: [] },
+    { label: 'This Month',  items: [] },
+    { label: 'Earlier',     items: [] },
+  ];
+
+  for (const a of unlocked) {
+    const t = new Date(a.unlockedAt!).getTime();
+    if (t >= startOfToday) groups[0].items.push(a);
+    else if (t >= startOfToday - dayMs) groups[1].items.push(a);
+    else if (t >= startOfWeek) groups[2].items.push(a);
+    else if (t >= startOfMonth) groups[3].items.push(a);
+    else groups[4].items.push(a);
+  }
+
+  const weekCount = groups[0].items.length + groups[1].items.length + groups[2].items.length;
+
+  return (
+    <>
+      <Card>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
+              Recent unlocks
+            </p>
+            <p className="text-[22px] font-bold text-black dark:text-white mt-0.5 leading-none">
+              {weekCount}
+            </p>
+            <p className="text-xs text-ios-gray dark:text-gray-400 mt-0.5">this week</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide">
+              All time
+            </p>
+            <p className="text-[22px] font-bold text-black dark:text-white mt-0.5 leading-none">
+              {unlocked.length}
+            </p>
+            <p className="text-xs text-ios-gray dark:text-gray-400 mt-0.5">unlocks</p>
+          </div>
+        </div>
+      </Card>
+
+      {groups.map((g) =>
+        g.items.length === 0 ? null : (
+          <section key={g.label}>
+            <p className="text-xs font-semibold text-ios-gray dark:text-gray-400 uppercase tracking-wide px-1 mb-2">
+              {g.label}
+            </p>
+            <Card padding={false}>
+              <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
+                {g.items.map((a) => (
+                  <TimelineRow key={a.definition.id} state={a} onTap={() => onTap(a)} />
+                ))}
+              </div>
+            </Card>
+          </section>
+        ),
+      )}
+    </>
+  );
+}
+
+function TimelineRow({ state, onTap }: { state: AchievementWithState; onTap: () => void }) {
+  const def = state.definition;
+  const ring = TIER_RING[def.tier];
+  return (
+    <button
+      onClick={onTap}
+      className="w-full flex items-center gap-3 px-4 py-3 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
+    >
+      <div
+        className={`w-11 h-11 flex-shrink-0 rounded-full bg-white dark:bg-white/[0.08] flex items-center justify-center ring-2 ${ring}`}
+      >
+        <span className="text-2xl leading-none" aria-hidden="true">{def.icon}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-black dark:text-white truncate">{def.title}</p>
+        <p className="text-[11px] text-ios-gray dark:text-gray-400 mt-0.5">
+          {TIER_LABEL[def.tier]} · {state.unlockedAt ? formatDate(state.unlockedAt) : ''}
+        </p>
+      </div>
+    </button>
   );
 }
 

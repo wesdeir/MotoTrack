@@ -5,6 +5,8 @@ import AchievementUnlockToast from '../features/AchievementUnlockToast';
 import MilestoneCelebrationManager from '../features/MilestoneCelebrationManager';
 import YearInReviewManager from '../features/YearInReviewManager';
 import VehicleAnniversaryManager from '../features/VehicleAnniversaryManager';
+import KonamiListener from '../features/KonamiListener';
+import AchievementProgressToast from '../features/AchievementProgressToast';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   useSwipeNavigation();
@@ -25,6 +27,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <MilestoneCelebrationManager />
       <YearInReviewManager />
       <VehicleAnniversaryManager />
+      <KonamiListener />
+      <AchievementProgressToast />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { useTutorial } from '../context/TutorialContext';
 import { useCelebrateUnlocks } from '../hooks/usePreferences';
 import { replayYearInReview } from '../components/features/YearInReviewManager';
+import { grantAchievement } from '../hooks/useAchievements';
 import { db } from '../db/database';
 import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument, UnlockedAchievement, HealthScoreSnapshot } from '../models';
 import { vehicleToForm, formToVehicleData } from '../utils/vehicleForm';
@@ -562,7 +563,7 @@ export default function SettingsPage() {
           </p>
           <Card>
             <p className="text-[15px] font-semibold text-black dark:text-white">MotoTrack</p>
-            <p className="text-sm text-ios-gray dark:text-gray-400">v{__APP_VERSION__}</p>
+            <VersionTap vehicleId={vehicle?.id} />
             <p className="text-xs text-ios-gray dark:text-gray-500 mt-2">
               All data is stored locally on your device using IndexedDB. No account required. No data leaves your device.
             </p>
@@ -605,5 +606,40 @@ export default function SettingsPage() {
         onCancel={() => setConfirmClear(false)}
       />
     </div>
+  );
+}
+
+/**
+ * Version label that turns into a hidden Easter-egg trigger after 7 rapid
+ * taps (within ~3s of each other). Grants the `insider` achievement to the
+ * active vehicle on completion. Resets if the user pauses.
+ */
+function VersionTap({ vehicleId }: { vehicleId: string | undefined }) {
+  const countRef = useRef(0);
+  const lastTapRef = useRef(0);
+
+  const onTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current > 1500) {
+      countRef.current = 0;
+    }
+    lastTapRef.current = now;
+    countRef.current += 1;
+    if (countRef.current >= 7) {
+      countRef.current = 0;
+      if (vehicleId) {
+        void grantAchievement(vehicleId, 'insider');
+      }
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      className="text-sm text-ios-gray dark:text-gray-400 text-left active:opacity-70"
+    >
+      v{__APP_VERSION__}
+    </button>
   );
 }

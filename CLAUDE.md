@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 1.1.0** (must match `package.json` `version` field)
+**Current version: 1.2.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -61,6 +61,7 @@ Lazy-loaded chunks:
 - **seed.ts** (~14KB demo data) — dynamic `import()` in initDb.ts and Onboarding.tsx
 - **VehicleSetupModal** (~1.8KB) — `React.lazy()` in TutorialBanner.tsx
 - **OCR (`tesseract.js`)** — dynamic `import('../../utils/ocr')` from `ReceiptUpload` and `ScanReceiptButton`. The OCR module is ~17 KB; tesseract.js fetches its worker + WASM at runtime, so first-scan has network latency. Cached after that.
+- **html2canvas (~200 KB)** — dynamic `import('html2canvas')` from `src/utils/sharePng.ts`. Used by Trophy case PNG share and PDF export. Lazy — first share has the load cost.
 
 ### Routing
 
@@ -165,6 +166,13 @@ Eight retention features wired into `useAchievements`. Persistence is minimal �
 
 - **NHTSA recall alerts** (`src/utils/recalls.ts`, `useRecalls.ts`, `RecallCard.tsx`): fetches active recalls for the active vehicle's year/make/model from NHTSA's free public API. Tries the full model first ("F-150", "Model 3") then falls back to the first word ("Civic" from "Civic SiR (EP3)") and merges results — handles users who packed trim info into the model string. 7-day cache in localStorage keyed by `${year}:${make}:${model}`. Banner appears on the Dashboard above the Health Score; do-not-drive recalls (`parkIt`) escalate the visual to red. Tap-through modal shows each recall with NHTSA campaign link + per-recall "Mark Resolved" (stored in localStorage as `mototrack-recall-ack:${vehicleId}:${campaignNumber}`). All data is best-effort — fetch failures fall through silently to "no recalls shown."
 
+### v1.2 — In-app depth
+
+- **Easter-egg achievements**: two new hidden badges with `predicate: () => false`, granted via `grantAchievement(vehicleId, id)` from listeners. `konami` (Konami code via global keyboard listener in `KonamiListener.tsx` mounted in AppShell — desktop / Bluetooth-keyboard only) and `insider` (7 rapid taps on the version label in Settings → About via inline `VersionTap` component). Both fully reset on key mismatch or pause.
+- **Almost-there progress toasts** (`AchievementProgressToast.tsx`): watches in-progress non-hidden achievements via `useAchievements`. When progress crosses 50% or 90% for the first time, queues a bottom-of-screen toast with the badge icon + "Halfway there"/"Almost there" + current progress label. Per-vehicle per-achievement state in localStorage as `mototrack-progress-notified:${vehicleId}:${achievementId} = pct`. Bootstrap-safe: first paint for a new vehicle records current thresholds without firing toasts — prevents blasting 40 toasts when loading the demo dataset.
+- **Trophy case PNG share** (`TrophyShareCard.tsx`, `src/utils/sharePng.ts`): Share button in the Achievements page header (only shown when ≥1 unlock). Renders a dedicated off-screen `TrophyShareCard` (600px logical, branded layout with level circle / top 12 badges / vehicle / footer) and captures it via lazy-loaded `html2canvas` (`scale: 2` for retina). Shares through Web Share API where available, falls back to download. The share card is portrait-oriented and uses inline styles so html2canvas can render reliably without Tailwind dependency.
+- **Achievement timeline** (`TimelineView` in `Achievements.tsx`): new `timeline` sort mode. Vertical chronological feed of unlocks grouped by Today / Yesterday / This Week / This Month / Earlier. Header shows trailing-7-day unlock count + lifetime total. Locked achievements excluded since the feed is about history.
+
 **Schema versions to remember:** v1 base · v2 vehicles createdAt index · v3 documents · v4 unlockedAchievements · (v5 skipped — `pinned` added as no-index optional column) · v6 healthScoreSnapshots.
 
 **Date capture for time-aware achievements:** `parseFormDate` in `formatters.ts` is used by Maintenance/Fuel forms. If the picked YYYY-MM-DD matches today, it stamps `Date.now()` (ms precision) so achievements like Late-Night Logger can fire. For backdated entries it parses as midnight. For edits without changing the date it preserves the record's original time.
@@ -187,11 +195,12 @@ src/
     ui/            — Reusable design system components
     features/      — Domain-specific components (FuelItem, MaintenanceItem, ReminderCard,
                      HealthScoreCard, HealthSparkline, AlmostThereCard, ShowcaseCard,
-                     AchievementUnlockToast, Confetti, MilestoneCelebration,
-                     MilestoneCelebrationManager, RecommendedRemindersModal,
+                     AchievementUnlockToast, AchievementProgressToast, Confetti,
+                     MilestoneCelebration, MilestoneCelebrationManager,
+                     RecommendedRemindersModal,
                      YearInReview, YearInReviewManager,
                      VehicleAnniversaryCelebration, VehicleAnniversaryManager,
-                     RecallCard, etc.)
+                     RecallCard, KonamiListener, TrophyShareCard, etc.)
     layout/        — AppShell, BottomNav
   context/         — React contexts (Theme, ColorTheme, Tutorial)
   db/              — Dexie database, seed data, init logic
@@ -204,7 +213,7 @@ src/
     Achievements   — Badge wall (single file: Achievements.tsx)
   utils/           — Pure functions (formatters, calculations, VIN decoder, image utils,
                      PDF export, healthScore, achievements, streaks, ocr,
-                     recommendedSchedule, yearStats, recalls)
+                     recommendedSchedule, yearStats, recalls, sharePng)
 ```
 
 ## Gotchas

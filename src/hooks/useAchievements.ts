@@ -46,6 +46,26 @@ export interface AchievementWithState {
 export const PIN_LIMIT = 3;
 
 /**
+ * Manually grant an achievement against a specific vehicle. Used for badges
+ * whose predicate is intentionally `() => false` (tutorial completion, Konami
+ * code, version-tap easter egg). Idempotent via the [vehicleId+achievementId]
+ * compound index — duplicate calls are no-ops.
+ */
+export async function grantAchievement(vehicleId: string, achievementId: string): Promise<void> {
+  try {
+    await db.unlockedAchievements.add({
+      id: crypto.randomUUID(),
+      vehicleId,
+      achievementId,
+      unlockedAt: new Date(),
+      seen: false,
+    });
+  } catch {
+    // Index collision — already unlocked. Fine.
+  }
+}
+
+/**
  * Watches the active vehicle's data and writes new achievement unlocks into the DB.
  * Also exposes the merged catalog+state for the Achievements page.
  */

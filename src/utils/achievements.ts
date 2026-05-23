@@ -976,6 +976,22 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: '🎓', category: 'milestone', tier: 1, hidden: true,
     predicate: () => false,
   },
+
+  // ------------------------- Easter eggs (v1.2) -------------------------
+  // Both granted directly from listeners in the app. Predicates intentionally
+  // false — these have no organic unlock condition.
+  {
+    id: 'konami', title: 'Konami Driver',
+    description: '↑ ↑ ↓ ↓ ← → ← → B A — old habits die hard.',
+    icon: '🎮', category: 'secret', tier: 2, hidden: true,
+    predicate: () => false,
+  },
+  {
+    id: 'insider', title: 'Insider',
+    description: 'You tapped the version number until something happened.',
+    icon: '🔓', category: 'secret', tier: 1, hidden: true,
+    predicate: () => false,
+  },
 ];
 
 export function getAchievement(id: string): AchievementDefinition | undefined {
