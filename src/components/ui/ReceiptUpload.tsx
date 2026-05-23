@@ -1,22 +1,30 @@
 import { useRef, useState } from 'react';
-import { Camera, FolderOpen, Trash2, FileText } from 'lucide-react';
+import { Camera, FolderOpen, Trash2, FileText, Sparkles } from 'lucide-react';
 import { compressImage, approxSizeKB } from '../../utils/imageUtils';
 import ReceiptViewer from './ReceiptViewer';
+import type { ParsedReceipt } from '../../utils/ocr';
 
 interface ReceiptUploadProps {
   value: string | undefined;
   fileName: string | undefined;
   onChange: (dataUrl: string, fileName: string) => void;
   onRemove: () => void;
+  /**
+   * If provided, OCR runs on uploaded image receipts and parsed fields are
+   * returned via this callback. Forms typically use this to auto-fill empty
+   * fields. OCR is lazy-loaded — adds nothing to the main bundle.
+   */
+  onScanned?: (parsed: ParsedReceipt) => void;
 }
 
 const MAX_BYTES = 15_000_000;
 
-export default function ReceiptUpload({ value, fileName, onChange, onRemove }: ReceiptUploadProps) {
+export default function ReceiptUpload({ value, fileName, onChange, onRemove, onScanned }: ReceiptUploadProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
 
   const isPDF = value?.startsWith('data:application/pdf');
@@ -39,6 +47,21 @@ export default function ReceiptUpload({ value, fileName, onChange, onRemove }: R
         dataUrl = await compressImage(file);
       }
       onChange(dataUrl, file.name);
+
+      // Optional auto-OCR for image receipts. Lazy-imported so tesseract.js
+      // only loads when actually scanning. Failure is non-fatal.
+      if (onScanned && file.type.startsWith('image/')) {
+        setScanning(true);
+        try {
+          const { scanReceipt } = await import('../../utils/ocr');
+          const parsed = await scanReceipt(file);
+          onScanned(parsed);
+        } catch {
+          // Best-effort — OCR failure shouldn't break attachment
+        } finally {
+          setScanning(false);
+        }
+      }
     } catch {
       setError('Failed to process file — please try again');
     } finally {
@@ -116,6 +139,12 @@ export default function ReceiptUpload({ value, fileName, onChange, onRemove }: R
       {!isPDF && (
         <p className="text-xs text-center text-ios-gray dark:text-gray-500">
           {approxSizeKB(value)} KB · tap to view full size
+        </p>
+      )}
+      {scanning && (
+        <p className="text-xs text-center text-ios-blue flex items-center justify-center gap-1.5">
+          <Sparkles size={12} className="animate-pulse" />
+          Scanning receipt for fields…
         </p>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}

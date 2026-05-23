@@ -3,6 +3,8 @@ import { useSwipeNavigation } from '../../hooks/useSwipeNavigation';
 import TutorialBanner from '../features/TutorialBanner';
 import AchievementUnlockToast from '../features/AchievementUnlockToast';
 import MilestoneCelebrationManager from '../features/MilestoneCelebrationManager';
+import YearInReviewManager from '../features/YearInReviewManager';
+import VehicleAnniversaryManager from '../features/VehicleAnniversaryManager';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   useSwipeNavigation();
@@ -21,6 +23,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <BottomNav />
       <AchievementUnlockToast />
       <MilestoneCelebrationManager />
+      <YearInReviewManager />
+      <VehicleAnniversaryManager />
     </div>
   );
 }

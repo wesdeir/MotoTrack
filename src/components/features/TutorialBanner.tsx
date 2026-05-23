@@ -4,7 +4,6 @@ import { ChevronRight, X } from 'lucide-react';
 import { useTutorial } from '../../context/TutorialContext';
 import { useVehicle } from '../../hooks/useVehicle';
 import Button from '../ui/Button';
-import { db } from '../../db/database';
 
 const VehicleSetupModal = lazy(() => import('./VehicleSetupModal'));
 
@@ -112,28 +111,17 @@ export default function TutorialBanner() {
   };
 
   /**
-   * Finish the tutorial AND grant the Welcome Wrench achievement against the
-   * currently-active vehicle. Idempotent — the compound [vehicleId+achievementId]
-   * index blocks duplicates if the user replays the tutorial.
-   *
-   * KNOWN LIMITATION: if the user finishes via "Set Up My Vehicle" the badge
-   * lands on the demo vehicle, which gets wiped seconds later. Future fix
-   * (tracked in TODO) — store a localStorage flag and have useAchievements
-   * back-grant on first vehicle creation if missing.
+   * Finish the tutorial. We set a localStorage flag instead of writing the
+   * achievement here, because the "Set Up My Vehicle" path swaps the active
+   * vehicle (demo → new) AFTER this handler fires. `useAchievements` watches
+   * for the flag and grants Welcome Wrench against whichever vehicle is
+   * settled — works for both the immediate-finish and the setup-modal paths.
    */
-  const handleComplete = async () => {
-    if (vehicle) {
-      try {
-        await db.unlockedAchievements.add({
-          id: crypto.randomUUID(),
-          vehicleId: vehicle.id,
-          achievementId: 'welcome-wrench',
-          unlockedAt: new Date(),
-          seen: false,
-        });
-      } catch {
-        // Index collision — already unlocked. Fine.
-      }
+  const handleComplete = () => {
+    try {
+      localStorage.setItem('mototrack-tutorial-completion-pending', '1');
+    } catch {
+      // best-effort
     }
     complete();
   };
@@ -219,7 +207,7 @@ export default function TutorialBanner() {
           <VehicleSetupModal
             isOpen={setupOpen}
             onClose={() => setSetupOpen(false)}
-            onComplete={complete}
+            onComplete={handleComplete}
           />
         </Suspense>
       )}

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorThemeProvider } from './context/ColorThemeContext';
 import { TutorialProvider, useTutorial } from './context/TutorialContext';
@@ -21,6 +21,7 @@ const RESET_EVENT = 'mototrack:reset-onboarding';
 function AppRoutes() {
   const { vehicle, allVehicles } = useVehicle();
   const { start: startTutorial } = useTutorial();
+  const navigate = useNavigate();
   const [onboardingDone, setOnboardingDone] = useState(
     () => localStorage.getItem(ONBOARDING_KEY) === '1',
   );
@@ -28,6 +29,11 @@ function AppRoutes() {
   const handleOnboardingDone = () => {
     localStorage.setItem(ONBOARDING_KEY, '1');
     setOnboardingDone(true);
+    // Reset the URL back to Dashboard. Without this, a user who cleared data
+    // from /settings (or any non-root route) lands back on that page when the
+    // Routes re-mount, which makes the tutorial's first step (highlighting
+    // the vehicle card on Dashboard) point at nothing.
+    navigate('/', { replace: true });
   };
 
   // Clear All Data in Settings dispatches this — flip back to Onboarding without a page reload.

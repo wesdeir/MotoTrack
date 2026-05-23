@@ -16,6 +16,7 @@ import MaintenanceItem from '../../components/features/MaintenanceItem';
 import ReminderCard from '../../components/features/ReminderCard';
 import ReminderSuggestion, { getDefaultInterval } from '../../components/features/ReminderSuggestion';
 import ReminderForm from '../../components/features/ReminderForm';
+import RecommendedRemindersModal from '../../components/features/RecommendedRemindersModal';
 import MaintenanceForm from './MaintenanceForm';
 import TimelineView from './TimelineView';
 import { useTutorialHighlight } from '../../hooks/useTutorialHighlight';
@@ -39,6 +40,7 @@ export default function MaintenancePage() {
   const [viewingReceipt, setViewingReceipt] = useState<MaintenanceRecord | null>(null);
   const [search, setSearch] = useState('');
   const [reminderFormOpen, setReminderFormOpen] = useState(false);
+  const [recommendedOpen, setRecommendedOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ReminderWithStatus | null>(null);
 
   const [pendingSuggestion, setPendingSuggestion] = useState<{
@@ -281,12 +283,25 @@ export default function MaintenancePage() {
       ) : (
         <div className="flex-1 overflow-y-auto scroll-area px-4 pb-4">
           {reminders.length === 0 ? (
-            <EmptyState
-              icon={Wrench}
-              title="No reminders"
-              description="Add a reminder to track when any service is due, or log a service with a next-due date."
-              action={{ label: 'Add Reminder', onClick: openNewReminder }}
-            />
+            <div className="min-h-full flex-1 flex flex-col items-center justify-center py-12 px-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-white/40 dark:bg-white/[0.08] backdrop-blur-xl border border-white/60 dark:border-white/[0.10] shadow-glass dark:shadow-glass-dark flex items-center justify-center mb-4">
+                <Wrench size={28} className="text-gray-500 dark:text-white/40" />
+              </div>
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-1">No reminders</h3>
+              <p className="text-sm text-ios-gray dark:text-gray-500 mb-6 max-w-xs">
+                Add reminders manually or import a recommended schedule based on your vehicle.
+              </p>
+              <div className="flex flex-col gap-2 w-full max-w-xs">
+                {vehicle && (
+                  <Button onClick={() => setRecommendedOpen(true)} fullWidth>
+                    Add Recommended Reminders
+                  </Button>
+                )}
+                <Button onClick={openNewReminder} variant="secondary" fullWidth>
+                  Add One Manually
+                </Button>
+              </div>
+            </div>
           ) : (
             <Card padding={false}>
               <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
@@ -333,6 +348,17 @@ export default function MaintenancePage() {
         onDelete={handleDeleteReminder}
         onClose={() => setReminderFormOpen(false)}
       />
+
+      {recommendedOpen && vehicle && (
+        <RecommendedRemindersModal
+          isOpen={recommendedOpen}
+          vehicle={vehicle}
+          onAdd={async (drafts) => {
+            for (const d of drafts) await addReminder(d);
+          }}
+          onClose={() => setRecommendedOpen(false)}
+        />
+      )}
 
       {viewingReceipt?.receiptImage && (
         <ReceiptViewer

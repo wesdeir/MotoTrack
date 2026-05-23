@@ -105,6 +105,40 @@ export function useAchievements() {
     [vehicle, maintenance, fuel, enrichedReminders, documents],
   );
 
+  // Tutorial-completion back-grant. `TutorialBanner.handleComplete` sets the
+  // `mototrack-tutorial-completion-pending` flag and lets us pick a vehicle
+  // here — works for both the immediate-finish path AND the "Set Up My
+  // Vehicle" path, where the active vehicle swaps after the handler fires.
+  // Flag is cleared once granted (or once we confirm the grant already exists)
+  // so it can't fire repeatedly for future vehicles.
+  useEffect(() => {
+    if (!vehicle || unlocked == null) return;
+    let pending: string | null = null;
+    try { pending = localStorage.getItem('mototrack-tutorial-completion-pending'); }
+    catch { /* no-op */ }
+    if (pending !== '1') return;
+
+    const alreadyGranted = unlocked.some((u) => u.achievementId === 'welcome-wrench');
+    const clearFlag = () => {
+      try { localStorage.removeItem('mototrack-tutorial-completion-pending'); }
+      catch { /* no-op */ }
+    };
+    if (alreadyGranted) {
+      clearFlag();
+      return;
+    }
+    db.unlockedAchievements
+      .add({
+        id: crypto.randomUUID(),
+        vehicleId: vehicle.id,
+        achievementId: 'welcome-wrench',
+        unlockedAt: new Date(),
+        seen: false,
+      })
+      .then(clearFlag)
+      .catch(clearFlag); // Index collision → already exists → still clear
+  }, [vehicle, unlocked]);
+
   // Daily health-score snapshot. Writes one row per vehicle per day; prunes
   // anything older than 60 days. Lightweight enough to run every render.
   useEffect(() => {

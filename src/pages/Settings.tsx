@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
-  ChevronRight, Check, Plus, PencilLine, FileText, Sparkles,
+  ChevronRight, Check, Plus, PencilLine, FileText, Sparkles, Gift,
 } from 'lucide-react';
 import { useVehicle } from '../hooks/useVehicle';
 import { useVehicleForm } from '../hooks/useVehicleForm';
@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
 import { useTutorial } from '../context/TutorialContext';
 import { useCelebrateUnlocks } from '../hooks/usePreferences';
+import { replayYearInReview } from '../components/features/YearInReviewManager';
 import { db } from '../db/database';
 import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument, UnlockedAchievement, HealthScoreSnapshot } from '../models';
 import { vehicleToForm, formToVehicleData } from '../utils/vehicleForm';
@@ -412,33 +413,51 @@ export default function SettingsPage() {
             Preferences
           </p>
           <Card padding={false}>
-            <button
-              onClick={() => setCelebrateUnlocks(!celebrateUnlocks)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
-            >
-              <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-ios-orange/10 flex items-center justify-center flex-shrink-0">
-                <Sparkles size={18} className="text-ios-orange" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-medium text-black dark:text-white">Celebrate unlocks</p>
-                <p className="text-xs text-ios-gray dark:text-gray-400 truncate">
-                  Confetti + haptics when achievements unlock
-                </p>
-              </div>
-              <div
-                role="switch"
-                aria-checked={celebrateUnlocks}
-                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  celebrateUnlocks ? 'bg-ios-green' : 'bg-gray-300 dark:bg-white/[0.15]'
-                }`}
+            <div className="divide-y divide-gray-100 dark:divide-white/[0.07]">
+              <button
+                onClick={() => setCelebrateUnlocks(!celebrateUnlocks)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
               >
+                <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-ios-orange/10 flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={18} className="text-ios-orange" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-medium text-black dark:text-white">Celebrate unlocks</p>
+                  <p className="text-xs text-ios-gray dark:text-gray-400 truncate">
+                    Confetti + haptics when achievements unlock
+                  </p>
+                </div>
                 <div
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                    celebrateUnlocks ? 'translate-x-5' : 'translate-x-0'
+                  role="switch"
+                  aria-checked={celebrateUnlocks}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                    celebrateUnlocks ? 'bg-ios-green' : 'bg-gray-300 dark:bg-white/[0.15]'
                   }`}
-                />
-              </div>
-            </button>
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                      celebrateUnlocks ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </div>
+              </button>
+
+              <button
+                onClick={replayYearInReview}
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/50 dark:active:bg-white/[0.05] text-left"
+              >
+                <div className="w-9 h-9 rounded-xl bg-pink-50 dark:bg-pink-500/10 flex items-center justify-center flex-shrink-0">
+                  <Gift size={18} className="text-pink-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-medium text-black dark:text-white">Replay last year's wrap</p>
+                  <p className="text-xs text-ios-gray dark:text-gray-400 truncate">
+                    Re-watch last year's MotoTrack summary
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-gray-300 dark:text-white/25" />
+              </button>
+            </div>
           </Card>
         </section>
 

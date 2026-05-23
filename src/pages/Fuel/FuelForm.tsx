@@ -3,8 +3,10 @@ import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormField';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import ScanReceiptButton from '../../components/ui/ScanReceiptButton';
 import { FUEL_GRADES, type FuelRecord, type FuelGrade } from '../../models';
 import { formatInputDate, parseFormDate } from '../../utils/formatters';
+import type { ParsedReceipt } from '../../utils/ocr';
 
 interface Props {
   isOpen: boolean;
@@ -93,6 +95,30 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
     setErrors((e) => ({ ...e, [key]: '' }));
   };
 
+  /**
+   * Auto-fill fuel-related form fields from an OCR result. Only fills fields
+   * the user hasn't already populated — never overwrites their input.
+   */
+  const applyParsedReceipt = (parsed: ParsedReceipt) => {
+    setForm((prev) => {
+      const next = { ...prev };
+      if (parsed.date && !prev.date) next.date = parsed.date;
+      if (parsed.amount != null && (prev.totalCost === '' || prev.totalCost === 0)) {
+        next.totalCost = parsed.amount;
+      }
+      if (parsed.litres != null && (prev.litres === '' || prev.litres === 0)) {
+        next.litres = parsed.litres;
+      }
+      if (parsed.pricePerLitre != null && (prev.pricePerLitre === '' || prev.pricePerLitre === 0)) {
+        next.pricePerLitre = parsed.pricePerLitre;
+      }
+      if (parsed.odometer != null && (prev.odometer === '' || prev.odometer === 0)) {
+        next.odometer = parsed.odometer;
+      }
+      return next;
+    });
+  };
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.date) errs.date = 'Date is required';
@@ -127,6 +153,8 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
     <>
       <Modal isOpen={isOpen} onClose={onClose} title={record ? 'Edit Fill-Up' : 'Log Fill-Up'}>
         <div className="px-5 py-4 space-y-4 pb-24">
+          {!record && <ScanReceiptButton onParsed={applyParsedReceipt} />}
+
           <FormField label="Date" error={errors.date} required>
             <Input
               type="date"

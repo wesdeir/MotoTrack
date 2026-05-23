@@ -56,6 +56,9 @@ export interface Vehicle {
    *  trigger a full-screen celebration. Initialized to currentOdometer on
    *  first detection so existing high-mileage vehicles don't blast on upgrade. */
   lastCelebratedOdometer?: number;
+  /** Last calendar year for which the vehicle's anniversary celebration fired.
+   *  Stops the modal from re-firing for the same anniversary on every reload. */
+  lastAnniversaryCelebrated?: number;
 }
 
 export interface MaintenanceRecord {

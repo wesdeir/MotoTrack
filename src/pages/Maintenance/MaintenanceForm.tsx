@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { formatInputDate, parseFormDate } from '../../utils/formatters';
+import type { ParsedReceipt } from '../../utils/ocr';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Textarea } from '../../components/ui/FormField';
@@ -201,6 +202,29 @@ export default function MaintenanceForm({
     if (!form.odometer || Number(form.odometer) <= 0) errs.odometer = 'Enter a valid odometer';
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  };
+
+  /** Auto-fill empty fields from OCR'd receipt. Never overwrites user input. */
+  const applyParsedReceipt = (parsed: ParsedReceipt) => {
+    setForm((prev) => {
+      const next = { ...prev };
+      if (parsed.date && !prev.date) next.date = parsed.date;
+      if (parsed.odometer != null && (prev.odometer === '' || prev.odometer === 0)) {
+        next.odometer = parsed.odometer;
+      }
+      // For maintenance, the parsed `amount` is the receipt total — typically
+      // labour + parts + tax bundled. Drop it into laborCost only if everything
+      // is empty, so we don't double-count user-entered parts.
+      if (
+        parsed.amount != null &&
+        Number(prev.laborCost || 0) === 0 &&
+        Number(prev.partsCost || 0) === 0 &&
+        Number(prev.tax || 0) === 0
+      ) {
+        next.laborCost = parsed.amount;
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
@@ -438,6 +462,7 @@ export default function MaintenanceForm({
               onRemove={() =>
                 setForm((p) => ({ ...p, receiptImage: undefined, receiptFileName: undefined }))
               }
+              onScanned={applyParsedReceipt}
             />
           </FormField>
 
