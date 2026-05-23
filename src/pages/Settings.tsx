@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, Monitor, Download, Upload, RefreshCw,
   ChevronRight, Check, Plus, PencilLine, FileText,
@@ -8,8 +9,9 @@ import { useVehicleForm } from '../hooks/useVehicleForm';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useTheme } from '../context/ThemeContext';
 import { useColorTheme, COLOR_THEMES } from '../context/ColorThemeContext';
+import { useTutorial } from '../context/TutorialContext';
 import { db } from '../db/database';
-import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument } from '../models';
+import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument, UnlockedAchievement } from '../models';
 import { vehicleToForm, formToVehicleData } from '../utils/vehicleForm';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
@@ -32,6 +34,8 @@ export default function SettingsPage() {
   const { records: maintenanceRecords } = useMaintenance(vehicle?.id);
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
+  const { start: startTutorial, complete: completeTutorial } = useTutorial();
+  const navigate = useNavigate();
 
   const {
     form, errors: formErrors, setField, setErrors: setFormErrors,
@@ -136,14 +140,15 @@ export default function SettingsPage() {
   };
 
   const handleExport = async () => {
-    const [vehicles, maintenanceRecords, fuelRecords, reminders, documents] = await Promise.all([
+    const [vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements] = await Promise.all([
       db.vehicles.toArray(),
       db.maintenanceRecords.toArray(),
       db.fuelRecords.toArray(),
       db.reminders.toArray(),
       db.documents.toArray(),
+      db.unlockedAchievements.toArray(),
     ]);
-    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders, documents }, null, 2);
+    const data = JSON.stringify({ vehicles, maintenanceRecords, fuelRecords, reminders, documents, unlockedAchievements }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -165,13 +170,17 @@ export default function SettingsPage() {
         fuelRecords?: unknown[];
         reminders?: unknown[];
         documents?: unknown[];
+        unlockedAchievements?: unknown[];
       };
-      await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, async () => {
+      await db.transaction('rw', [
+        db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
+      ], async () => {
         if (parsed.vehicles?.length) await db.vehicles.bulkPut(parsed.vehicles);
         if (parsed.maintenanceRecords?.length) await db.maintenanceRecords.bulkPut(parsed.maintenanceRecords as MaintenanceRecord[]);
         if (parsed.fuelRecords?.length) await db.fuelRecords.bulkPut(parsed.fuelRecords as FuelRecord[]);
         if (parsed.reminders?.length) await db.reminders.bulkPut(parsed.reminders as Reminder[]);
         if (parsed.documents?.length) await db.documents.bulkPut(parsed.documents as VehicleDocument[]);
+        if (parsed.unlockedAchievements?.length) await db.unlockedAchievements.bulkPut(parsed.unlockedAchievements as UnlockedAchievement[]);
       });
       showToast('Data imported successfully');
     } catch {
@@ -185,6 +194,8 @@ export default function SettingsPage() {
     const { clearAndReseed } = await import('../db/seed');
     await clearAndReseed();
     setConfirmReseed(false);
+    navigate('/');         // Tutorial step 0 highlights vehicle-card on the Dashboard
+    startTutorial();
     showToast('Demo data loaded');
   };
 
@@ -192,7 +203,7 @@ export default function SettingsPage() {
     // Transaction ensures all-or-nothing: a mid-clear failure won't leave the DB in
     // a partially cleared state with dangling records from deleted vehicles.
     await db.transaction('rw', [
-      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents,
+      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
     ], async () => {
       await Promise.all([
         db.vehicles.clear(),
@@ -200,8 +211,13 @@ export default function SettingsPage() {
         db.fuelRecords.clear(),
         db.reminders.clear(),
         db.documents.clear(),
+        db.unlockedAchievements.clear(),
       ]);
     });
+    // Clear any in-progress tutorial so it doesn't resume mid-step in the new flow.
+    completeTutorial();
+    localStorage.removeItem('mototrack-onboarding-seen');
+    window.dispatchEvent(new Event('mototrack:reset-onboarding'));
     setConfirmClear(false);
     showToast('All data cleared');
   };

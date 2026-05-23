@@ -1,6 +1,7 @@
 import BottomNav from './BottomNav';
 import { useSwipeNavigation } from '../../hooks/useSwipeNavigation';
 import TutorialBanner from '../features/TutorialBanner';
+import AchievementUnlockToast from '../features/AchievementUnlockToast';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   useSwipeNavigation();
@@ -17,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <TutorialBanner />
       <BottomNav />
+      <AchievementUnlockToast />
     </div>
   );
 }

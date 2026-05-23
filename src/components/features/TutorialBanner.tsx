@@ -2,9 +2,14 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, X } from 'lucide-react';
 import { useTutorial } from '../../context/TutorialContext';
+import { useVehicle } from '../../hooks/useVehicle';
 import Button from '../ui/Button';
 
 const VehicleSetupModal = lazy(() => import('./VehicleSetupModal'));
+
+// Kept inline (not imported from db/seed) so the seed module stays out of the main bundle.
+// Must match the VEHICLE_ID constant in src/db/seed.ts.
+const DEMO_VEHICLE_ID = 'civic-sir-2002';
 
 interface TutorialStep {
   route: string;
@@ -61,6 +66,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 
 export default function TutorialBanner() {
   const { isActive, step, advance, complete, skip, setHighlight } = useTutorial();
+  const { vehicle } = useVehicle();
   const navigate = useNavigate();
   const [setupOpen, setSetupOpen] = useState(false);
 
@@ -75,6 +81,10 @@ export default function TutorialBanner() {
   if (!isActive) return null;
 
   const isLast = current.isLast === true;
+  const isDemoMode = vehicle?.id === DEMO_VEHICLE_ID;
+  const finalBody = isLast && !isDemoMode
+    ? "That's the full tour. You're ready to start tracking — log a service or fuel-up whenever you're ready."
+    : current.body;
 
   const handleNext = () => {
     const nextStep = TUTORIAL_STEPS[step + 1];
@@ -119,27 +129,33 @@ export default function TutorialBanner() {
             {current.title}
           </p>
           <p className="text-xs text-ios-gray dark:text-gray-400 mt-0.5 leading-relaxed">
-            {current.body}
+            {finalBody}
           </p>
 
           {/* Actions */}
           <div className="mt-3 flex items-center justify-end gap-2">
             {isLast ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={complete}
-                >
-                  Keep Exploring
+              isDemoMode ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={complete}
+                  >
+                    Keep Exploring
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setSetupOpen(true)}
+                  >
+                    Set Up My Vehicle
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={complete}>
+                  Finish
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setSetupOpen(true)}
-                >
-                  Set Up My Vehicle
-                </Button>
-              </>
+              )
             ) : (
               <button
                 onClick={handleNext}

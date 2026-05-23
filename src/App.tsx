@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorThemeProvider } from './context/ColorThemeContext';
@@ -13,8 +13,10 @@ import Onboarding from './pages/Onboarding';
 
 // Lazy-load the Reports page so recharts (~280 KB) doesn't inflate the initial bundle.
 const ReportsPage = lazy(() => import('./pages/Reports'));
+const AchievementsPage = lazy(() => import('./pages/Achievements'));
 
 const ONBOARDING_KEY = 'mototrack-onboarding-seen';
+const RESET_EVENT = 'mototrack:reset-onboarding';
 
 function AppRoutes() {
   const { vehicle, allVehicles } = useVehicle();
@@ -27,6 +29,13 @@ function AppRoutes() {
     localStorage.setItem(ONBOARDING_KEY, '1');
     setOnboardingDone(true);
   };
+
+  // Clear All Data in Settings dispatches this — flip back to Onboarding without a page reload.
+  useEffect(() => {
+    const handler = () => setOnboardingDone(false);
+    window.addEventListener(RESET_EVENT, handler);
+    return () => window.removeEventListener(RESET_EVENT, handler);
+  }, []);
 
   if (vehicle === undefined) {
     return (
@@ -41,8 +50,8 @@ function AppRoutes() {
       <Onboarding
         onDone={handleOnboardingDone}
         onStartTutorial={() => {
-          handleOnboardingDone(); // lift the gate so AppShell renders with demo data
-          startTutorial();       // activate the tutorial banner
+          handleOnboardingDone();
+          startTutorial();
         }}
       />
     );
@@ -64,6 +73,15 @@ function AppRoutes() {
           </Suspense>
         } />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/achievements" element={
+          <Suspense fallback={
+            <div className="fixed inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-ios-blue/30 border-t-ios-blue animate-spin" />
+            </div>
+          }>
+            <AchievementsPage />
+          </Suspense>
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

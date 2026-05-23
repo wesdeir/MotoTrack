@@ -1,5 +1,12 @@
 import Dexie, { type Table } from 'dexie';
-import type { Vehicle, MaintenanceRecord, FuelRecord, Reminder, VehicleDocument } from '../models';
+import type {
+  Vehicle,
+  MaintenanceRecord,
+  FuelRecord,
+  Reminder,
+  VehicleDocument,
+  UnlockedAchievement,
+} from '../models';
 
 class MotoTrackDB extends Dexie {
   vehicles!: Table<Vehicle, string>;
@@ -7,6 +14,7 @@ class MotoTrackDB extends Dexie {
   fuelRecords!: Table<FuelRecord, string>;
   reminders!: Table<Reminder, string>;
   documents!: Table<VehicleDocument, string>;
+  unlockedAchievements!: Table<UnlockedAchievement, string>;
 
   constructor() {
     super('MotoTrackDB');
@@ -23,6 +31,10 @@ class MotoTrackDB extends Dexie {
     // v3: GloveBox document storage
     this.version(3).stores({
       documents: 'id, vehicleId, type',
+    });
+    // v4: gamification — unlocked achievements per vehicle
+    this.version(4).stores({
+      unlockedAchievements: 'id, vehicleId, achievementId, seen, [vehicleId+achievementId]',
     });
   }
 }

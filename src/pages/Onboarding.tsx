@@ -49,7 +49,7 @@ export default function Onboarding({ onDone, onStartTutorial }: Props) {
     setSaving(true);
     try {
       await addVehicle(formToVehicleData(form));
-      onDone();
+      onStartTutorial();
     } finally {
       setSaving(false);
     }

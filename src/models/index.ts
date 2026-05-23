@@ -146,3 +146,12 @@ export interface ReminderWithStatus extends Reminder {
   estimatedDueDate?: Date;
   progressPercent?: number;
 }
+
+export interface UnlockedAchievement {
+  id: string;                // crypto.randomUUID()
+  achievementId: string;     // matches an entry in ACHIEVEMENTS
+  vehicleId: string;         // achievements are per-vehicle
+  unlockedAt: Date;
+  /** True until the user has seen the celebration. Used to show "new" indicators. */
+  seen: boolean;
+}

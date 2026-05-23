@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 0.5.1** (must match `package.json` `version` field)
+**Current version: 0.6.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -37,10 +37,11 @@ ThemeProvider          — light/dark/system mode (class-based, toggles <html cl
 
 ### Data Layer
 
-**Dexie 3** wraps IndexedDB. Schema is at `src/db/database.ts` with 3 versions:
+**Dexie 3** wraps IndexedDB. Schema is at `src/db/database.ts` with 4 versions:
 - v1: vehicles, maintenanceRecords, fuelRecords, reminders
 - v2: added `createdAt` index on vehicles
 - v3: added `documents` table (GloveBox)
+- v4: added `unlockedAchievements` table (gamification — one row per achievement-unlock per vehicle, with `seen` flag for celebration toast)
 
 All CRUD hooks follow the same pattern (`useMaintenance`, `useFuel`, `useReminders`, `useDocuments`): `useLiveQuery` for reactive reads, async methods for writes. `useVehicle` is the exception — it also manages active vehicle selection via localStorage + cross-tab broadcast.
 
@@ -54,14 +55,15 @@ Always dynamic-import seed.ts: `const { seedDemoData } = await import('./db/seed
 
 ### Code Splitting
 
-Three lazy-loaded chunks:
+Lazy-loaded chunks:
 - **Reports page** (`recharts` ~280KB) — `React.lazy(() => import('./pages/Reports'))` in App.tsx
+- **Achievements page** — `React.lazy()` in App.tsx (badge wall, infrequently visited)
 - **seed.ts** (~14KB demo data) — dynamic `import()` in initDb.ts and Onboarding.tsx
 - **VehicleSetupModal** (~1.8KB) — `React.lazy()` in TutorialBanner.tsx
 
 ### Routing
 
-5 routes via HashRouter: `/` (Dashboard), `/maintenance`, `/fuel`, `/reports`, `/settings`. All wrapped in `AppShell` which provides the fixed layout frame (`fixed inset-0 flex flex-col`) with scrollable `<main>`, TutorialBanner, and BottomNav.
+6 routes via HashRouter: `/` (Dashboard), `/maintenance`, `/fuel`, `/reports`, `/settings`, `/achievements`. All wrapped in `AppShell` which provides the fixed layout frame (`fixed inset-0 flex flex-col`) with scrollable `<main>`, TutorialBanner, BottomNav, and the global AchievementUnlockToast. Only the first 5 are in the bottom nav — Achievements is reached via the Dashboard "Trophy Case" row.
 
 ### Two-Path Onboarding
 
@@ -131,6 +133,15 @@ Economy is computed by `enrichFuelRecords()` in `useFuel` hook — `lPer100km`, 
 
 Stored as base64 data URLs in IndexedDB. Compressed via `src/utils/imageUtils.ts` before storage. Shared upload component: `ReceiptUpload.tsx`. Shared viewer: `ReceiptViewer.tsx`. GloveBox documents use the same pattern.
 
+### Gamification (Health Score + Achievements)
+
+Two retention features that compute purely from existing data:
+
+- **Vehicle Health Score** (`src/utils/healthScore.ts`): pure 0–100 calculation across four categories (reminders, activity recency, service engagement, documentation). Shown on the Dashboard via `HealthScoreCard.tsx` with a tap-through breakdown modal. Recompute is automatic via `useMemo` over the same live data the Dashboard already loads — no extra hooks, no persistence.
+- **Achievements** (`src/utils/achievements.ts`, `src/hooks/useAchievements.ts`): catalog of ~25 achievements with predicate functions. The hook watches the active vehicle's data and writes unlock rows to `db.unlockedAchievements` (one per achievement-id × vehicle-id pair, idempotent via the `[vehicleId+achievementId]` compound index). Fresh unlocks have `seen=false` until the user dismisses the global `AchievementUnlockToast` (mounted in AppShell) or visits the Achievements page. The toast queues multiple unlocks and shows them sequentially.
+
+Important: data wipes (`Settings.handleClearAll`, `seed.clearDemoData`, `seed.clearAndReseed`, `useVehicle.deleteVehicle`) and the backup/restore in Settings include the `unlockedAchievements` table — keep them in sync when adding more gamification state.
+
 ## Build & Deploy
 
 - `__APP_VERSION__` is injected at build time from `package.json` version via Vite `define`
@@ -145,16 +156,20 @@ Stored as base64 data URLs in IndexedDB. Compressed via `src/utils/imageUtils.ts
 src/
   components/
     ui/            — Reusable design system components
-    features/      — Domain-specific components (FuelItem, MaintenanceItem, ReminderCard, etc.)
+    features/      — Domain-specific components (FuelItem, MaintenanceItem, ReminderCard,
+                     HealthScoreCard, AchievementUnlockToast, etc.)
     layout/        — AppShell, BottomNav
   context/         — React contexts (Theme, ColorTheme, Tutorial)
   db/              — Dexie database, seed data, init logic
-  hooks/           — Custom hooks (useVehicle, useFuel, useMaintenance, useReminders, useDocuments)
+  hooks/           — Custom hooks (useVehicle, useFuel, useMaintenance, useReminders,
+                     useDocuments, useAchievements)
   models/          — TypeScript interfaces and type constants
   pages/           — Route-level page components
     Maintenance/   — MaintenancePage, MaintenanceForm, TimelineView
     Fuel/          — FuelPage, FuelForm
-  utils/           — Pure functions (formatters, calculations, VIN decoder, image utils, PDF export)
+    Achievements   — Badge wall (single file: Achievements.tsx)
+  utils/           — Pure functions (formatters, calculations, VIN decoder, image utils,
+                     PDF export, healthScore, achievements)
 ```
 
 ## Gotchas

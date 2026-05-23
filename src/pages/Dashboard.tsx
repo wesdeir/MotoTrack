@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
-import { ChevronRight, Wrench, Droplets, FolderOpen } from 'lucide-react';
+import { ChevronRight, Wrench, Droplets, FolderOpen, Trophy } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useFuel } from '../hooks/useFuel';
 import { useReminders } from '../hooks/useReminders';
 import { useDocuments } from '../hooks/useDocuments';
+import { useAchievements } from '../hooks/useAchievements';
 import GloveBox from './GloveBox';
 import {
   calculateTotalMaintenanceSpend,
@@ -20,10 +21,12 @@ import {
 } from '../utils/fuelCalc';
 import { calculateCostPerKm } from '../utils/costOfOwnership';
 import { getUrgentReminders } from '../utils/reminderLogic';
+import { calculateHealthScore } from '../utils/healthScore';
 import type { ReminderWithStatus } from '../models';
 import { formatOdometer, formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
+import HealthScoreCard from '../components/features/HealthScoreCard';
 import ReminderCard from '../components/features/ReminderCard';
 import ReminderForm from '../components/features/ReminderForm';
 import MaintenanceItem from '../components/features/MaintenanceItem';
@@ -51,6 +54,7 @@ export default function Dashboard() {
   );
   const lastFuel = useMemo(() => fuel[0] ?? null, [fuel]);
   const { documents } = useDocuments(vehicle?.id);
+  const { unlockedCount, totalCount, unseenUnlocks } = useAchievements();
   const lastShopMap = useMemo(() => buildLastShopMap(maintenance), [maintenance]);
 
   const thisYearSpend = useMemo(() => {
@@ -68,6 +72,11 @@ export default function Dashboard() {
   const hasExpiringDoc = useMemo(
     () => documents.some((d) => d.expiresAt != null && differenceInDays(d.expiresAt, new Date()) <= 30),
     [documents],
+  );
+
+  const healthScore = useMemo(
+    () => vehicle ? calculateHealthScore(vehicle, maintenance, fuel, reminders, documents) : null,
+    [vehicle, maintenance, fuel, reminders, documents],
   );
 
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
@@ -175,8 +184,25 @@ export default function Dashboard() {
               {documents.length > 0 ? `${documents.length} file${documents.length !== 1 ? 's' : ''}` : 'Add'}
             </span>
           </button>
+          <Link
+            to="/achievements"
+            className="flex items-center justify-between w-full active:opacity-70"
+          >
+            <span className="flex items-center gap-1.5 text-xs text-ios-gray dark:text-gray-400">
+              <Trophy size={12} />
+              Trophy Case
+              {unseenUnlocks.length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-ios-red animate-dot-pulse" />
+              )}
+            </span>
+            <span className="text-xs font-semibold text-ios-blue">
+              {unlockedCount} / {totalCount}
+            </span>
+          </Link>
         </div>
       </Card>
+
+      {healthScore && <HealthScoreCard score={healthScore} />}
 
       <div className={`flex gap-3 rounded-2xl ${hlQuickActions}`}>
         <Button

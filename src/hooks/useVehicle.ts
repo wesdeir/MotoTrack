@@ -74,13 +74,16 @@ export function useVehicle() {
   };
 
   const deleteVehicle = async (id: string) => {
-    await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, async () => {
+    await db.transaction('rw', [
+      db.vehicles, db.maintenanceRecords, db.fuelRecords, db.reminders, db.documents, db.unlockedAchievements,
+    ], async () => {
       await db.vehicles.delete(id);
       await Promise.all([
         db.maintenanceRecords.where('vehicleId').equals(id).delete(),
         db.fuelRecords.where('vehicleId').equals(id).delete(),
         db.reminders.where('vehicleId').equals(id).delete(),
         db.documents.where('vehicleId').equals(id).delete(),
+        db.unlockedAchievements.where('vehicleId').equals(id).delete(),
       ]);
     });
     if (id === activeId) {
