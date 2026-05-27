@@ -13,6 +13,7 @@ export interface VehicleForm {
   engine: string;
   vin: string;
   currentOdometer: number | '';
+  tankSizeLitres: number | '';
   currency: Vehicle['currency'];
 }
 
@@ -32,7 +33,8 @@ export const CURRENCY_OPTIONS = [
 export function emptyVehicleForm(): VehicleForm {
   return {
     nickname: '', year: '', make: '', model: '',
-    trim: '', engine: '', vin: '', currentOdometer: '', currency: 'CAD',
+    trim: '', engine: '', vin: '', currentOdometer: '',
+    tankSizeLitres: '', currency: 'CAD',
   };
 }
 
@@ -46,6 +48,7 @@ export function vehicleToForm(v: Vehicle): VehicleForm {
     engine: v.engine ?? '',
     vin: v.vin ?? '',
     currentOdometer: v.currentOdometer,
+    tankSizeLitres: v.tankSizeLitres ?? '',
     currency: v.currency ?? 'CAD',
   };
 }
@@ -61,6 +64,7 @@ export function formToVehicleData(form: VehicleForm): Omit<Vehicle, 'id' | 'crea
     engine: form.engine.trim() || undefined,
     vin: form.vin.trim() || undefined,
     currentOdometer: Number(form.currentOdometer),
+    tankSizeLitres: form.tankSizeLitres !== '' ? Number(form.tankSizeLitres) : undefined,
     currency: form.currency,
     units: 'km',
     fuelUnits: 'litres',

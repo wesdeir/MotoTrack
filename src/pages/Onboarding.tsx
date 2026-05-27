@@ -21,7 +21,7 @@ const TOTAL_CARDS = 4;
 
 export default function Onboarding({ onDone, onStartTutorial }: Props) {
   const { addVehicle } = useVehicle();
-  const { form, errors, setField, validate, decoding, handleDecodeVin } = useVehicleForm();
+  const { form, errors, setField, validate, decoding, handleDecodeVin, lookingUpTank, handleLookupTankSize } = useVehicleForm();
   const [card, setCard] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -130,6 +130,8 @@ export default function Onboarding({ onDone, onStartTutorial }: Props) {
                 setField={setField}
                 decoding={decoding}
                 onDecodeVin={onDecodeVin}
+                lookingUpTank={lookingUpTank}
+                onLookupTankSize={handleLookupTankSize}
               />
 
               <div className="pt-2 space-y-2">

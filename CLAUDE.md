@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 1.2.0** (must match `package.json` `version` field)
+**Current version: 1.3.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -166,6 +166,13 @@ Eight retention features wired into `useAchievements`. Persistence is minimal �
 
 - **NHTSA recall alerts** (`src/utils/recalls.ts`, `useRecalls.ts`, `RecallCard.tsx`): fetches active recalls for the active vehicle's year/make/model from NHTSA's free public API. Tries the full model first ("F-150", "Model 3") then falls back to the first word ("Civic" from "Civic SiR (EP3)") and merges results — handles users who packed trim info into the model string. 7-day cache in localStorage keyed by `${year}:${make}:${model}`. Banner appears on the Dashboard above the Health Score; do-not-drive recalls (`parkIt`) escalate the visual to red. Tap-through modal shows each recall with NHTSA campaign link + per-recall "Mark Resolved" (stored in localStorage as `mototrack-recall-ack:${vehicleId}:${campaignNumber}`). All data is best-effort — fetch failures fall through silently to "no recalls shown."
 
+### v1.3 — Tank size + EPA integration
+
+- **OEM tank capacity lookup** (`src/utils/epaVehicleData.ts`): queries EPA's free FuelEconomy.gov API to find the fuel tank capacity for a given year/make/model. NHTSA's vPIC decode doesn't include tank size, so EPA fills the gap. Two-step lookup: `menu/options` returns matching vehicle IDs, then `vehicle/{id}` returns full data with `tankSize1` (gallons → converted to litres, rounded to 0.1). Tries the full model first, then a first-word fallback for "Civic SiR (EP3)" → "Civic". 30-day cache in localStorage. Returns null on no-match or fetch failure.
+- **Auto-populate flow** (`useVehicleForm.handleDecodeVin`): after successful VIN decode, fires a background lookup using the decoded year/make/model. Populates `tankSizeLitres` only if the user hasn't already entered one. Manual "Look up" button next to the field (in `VehicleFormFields`) lets users without a VIN trigger the same query using whatever year/make/model they've typed.
+- **Range estimate on Dashboard**: when both `tankSizeLitres` and a rolling average L/100km exist, the vehicle card shows `Tank: 50 L · ~714 km range` — computed as `tankSize × 100 / avgLPer100km`. Both inputs are optional; the row hides if tank size is missing, and the range portion hides if no fuel records exist yet.
+- **Schema:** `Vehicle.tankSizeLitres?: number` — optional, no migration needed.
+
 ### v1.2 — In-app depth
 
 - **Easter-egg achievements**: two new hidden badges with `predicate: () => false`, granted via `grantAchievement(vehicleId, id)` from listeners. `konami` (Konami code via global keyboard listener in `KonamiListener.tsx` mounted in AppShell — desktop / Bluetooth-keyboard only) and `insider` (7 rapid taps on the version label in Settings → About via inline `VersionTap` component). Both fully reset on key mismatch or pause.
@@ -213,7 +220,8 @@ src/
     Achievements   — Badge wall (single file: Achievements.tsx)
   utils/           — Pure functions (formatters, calculations, VIN decoder, image utils,
                      PDF export, healthScore, achievements, streaks, ocr,
-                     recommendedSchedule, yearStats, recalls, sharePng)
+                     recommendedSchedule, yearStats, recalls, sharePng,
+                     epaVehicleData)
 ```
 
 ## Gotchas

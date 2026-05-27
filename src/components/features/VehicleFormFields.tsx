@@ -8,9 +8,18 @@ interface Props {
   setField: <K extends keyof VehicleForm>(key: K, val: VehicleForm[K]) => void;
   decoding: boolean;
   onDecodeVin: () => void;
+  /** Optional — when provided, shows a "Look up" button next to Tank Size that
+   *  queries EPA using the current year/make/model. */
+  lookingUpTank?: boolean;
+  onLookupTankSize?: () => void;
 }
 
-export default function VehicleFormFields({ form, errors, setField, decoding, onDecodeVin }: Props) {
+export default function VehicleFormFields({
+  form, errors, setField, decoding, onDecodeVin,
+  lookingUpTank = false, onLookupTankSize,
+}: Props) {
+  const canLookupTank =
+    !!onLookupTankSize && !!form.year && !!form.make.trim() && !!form.model.trim();
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -80,14 +89,39 @@ export default function VehicleFormFields({ form, errors, setField, decoding, on
             min={0}
           />
         </FormField>
-        <FormField label="Currency">
-          <Select
-            value={form.currency}
-            onChange={(e) => setField('currency', e.target.value as VehicleForm['currency'])}
-            options={CURRENCY_OPTIONS}
-          />
+        <FormField label="Tank Size (L)" hint="Auto-fills after VIN decode">
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              value={form.tankSizeLitres}
+              onChange={(e) => setField('tankSizeLitres', e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="50"
+              min={0}
+              step={0.1}
+              className="flex-1 min-w-0"
+            />
+            {onLookupTankSize && (
+              <button
+                type="button"
+                onClick={onLookupTankSize}
+                disabled={!canLookupTank || lookingUpTank}
+                title="Look up tank size from EPA"
+                className="px-2.5 rounded-xl bg-ios-blue text-white text-xs font-semibold disabled:opacity-40 flex-shrink-0 flex items-center"
+              >
+                {lookingUpTank ? <Loader2 size={12} className="animate-spin" /> : 'Look up'}
+              </button>
+            )}
+          </div>
         </FormField>
       </div>
+
+      <FormField label="Currency">
+        <Select
+          value={form.currency}
+          onChange={(e) => setField('currency', e.target.value as VehicleForm['currency'])}
+          options={CURRENCY_OPTIONS}
+        />
+      </FormField>
     </>
   );
 }

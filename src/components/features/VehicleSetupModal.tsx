@@ -14,7 +14,7 @@ interface Props {
 
 export default function VehicleSetupModal({ isOpen, onClose, onComplete }: Props) {
   const { addVehicle } = useVehicle();
-  const { form, errors, setField, validate, decoding, handleDecodeVin } = useVehicleForm();
+  const { form, errors, setField, validate, decoding, handleDecodeVin, lookingUpTank, handleLookupTankSize } = useVehicleForm();
   const [saving, setSaving] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -68,6 +68,8 @@ export default function VehicleSetupModal({ isOpen, onClose, onComplete }: Props
           setField={setField}
           decoding={decoding}
           onDecodeVin={onDecodeVin}
+          lookingUpTank={lookingUpTank}
+          onLookupTankSize={handleLookupTankSize}
         />
 
         <div className="pt-2 space-y-2">

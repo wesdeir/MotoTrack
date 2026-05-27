@@ -13,6 +13,7 @@ const vehicle: Vehicle = {
   engine: '2.0L DOHC i-VTEC (K20A3)',
   vin: '',
   currentOdometer: 211450,
+  tankSizeLitres: 50, // 2002 Civic SiR factory tank
   units: 'km',
   fuelUnits: 'litres',
   currency: 'CAD',

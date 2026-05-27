@@ -47,6 +47,10 @@ export interface Vehicle {
   engine?: string;
   vin?: string;
   currentOdometer: number;
+  /** OEM fuel-tank capacity in litres. Auto-populated from EPA after VIN decode
+   *  where available; user-editable. Optional — older / niche vehicles may not
+   *  appear in EPA's database. */
+  tankSizeLitres?: number;
   units: 'km' | 'miles';
   fuelUnits: 'litres' | 'gallons';
   currency: 'CAD' | 'USD';

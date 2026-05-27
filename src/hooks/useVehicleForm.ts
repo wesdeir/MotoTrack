@@ -5,11 +5,13 @@ import {
   validateVehicleForm,
 } from '../utils/vehicleForm';
 import { decodeVin } from '../utils/vinDecoder';
+import { lookupTankSizeLitres } from '../utils/epaVehicleData';
 
 export function useVehicleForm(initialForm?: VehicleForm) {
   const [form, setForm] = useState<VehicleForm>(initialForm ?? emptyVehicleForm());
   const [errors, setErrors] = useState<Partial<Record<keyof VehicleForm, string>>>({});
   const [decoding, setDecoding] = useState(false);
+  const [lookingUpTank, setLookingUpTank] = useState(false);
 
   const setField = <K extends keyof VehicleForm>(key: K, val: VehicleForm[K]) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -28,7 +30,8 @@ export function useVehicleForm(initialForm?: VehicleForm) {
     setErrors({});
   };
 
-  /** Decode VIN and populate form fields. Returns `true` on success. */
+  /** Decode VIN and populate form fields. Returns `true` on success. Tank size
+   *  lookup happens in the background — doesn't block the resolution. */
   const handleDecodeVin = async (): Promise<boolean> => {
     if (form.vin.length < 17) return false;
     setDecoding(true);
@@ -43,6 +46,12 @@ export function useVehicleForm(initialForm?: VehicleForm) {
           trim: result.trim ?? p.trim,
           engine: result.engine ?? p.engine,
         }));
+        // Fire-and-forget tank-size lookup. If found, populate only when the
+        // user hasn't entered a value themselves.
+        void lookupTankSizeLitres(result.year, result.make, result.model).then((litres) => {
+          if (litres == null) return;
+          setForm((p) => (p.tankSizeLitres === '' ? { ...p, tankSizeLitres: litres } : p));
+        });
         return true;
       }
       return false;
@@ -51,5 +60,29 @@ export function useVehicleForm(initialForm?: VehicleForm) {
     }
   };
 
-  return { form, errors, setField, setForm, setErrors, validate, reset, decoding, handleDecodeVin };
+  /** Manual EPA tank-size lookup using whatever year/make/model is in the form.
+   *  Returns true on success. Used by the "Look up" button next to the tank
+   *  size field — handy when the user typed make/model without a VIN. */
+  const handleLookupTankSize = async (): Promise<boolean> => {
+    if (!form.year || !form.make.trim() || !form.model.trim()) return false;
+    setLookingUpTank(true);
+    try {
+      const litres = await lookupTankSizeLitres(
+        Number(form.year),
+        form.make.trim(),
+        form.model.trim(),
+      );
+      if (litres == null) return false;
+      setForm((p) => ({ ...p, tankSizeLitres: litres }));
+      return true;
+    } finally {
+      setLookingUpTank(false);
+    }
+  };
+
+  return {
+    form, errors, setField, setForm, setErrors, validate, reset,
+    decoding, handleDecodeVin,
+    lookingUpTank, handleLookupTankSize,
+  };
 }

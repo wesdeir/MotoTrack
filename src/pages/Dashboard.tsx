@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
-import { ChevronRight, Wrench, Droplets, FolderOpen, Trophy, Flame } from 'lucide-react';
+import { ChevronRight, Wrench, Droplets, FolderOpen, Trophy, Flame, Fuel } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useVehicle } from '../hooks/useVehicle';
 import { useMaintenance } from '../hooks/useMaintenance';
@@ -78,6 +78,19 @@ export default function Dashboard() {
       .reduce((s, r) => s + r.totalCost, 0);
     return mSpend + fSpend;
   }, [maintenance, fuel]);
+
+  /** Mean L/100km across all fuel records that have a computed value. */
+  const avgLPer100km = useMemo(() => {
+    const eco = fuel.filter((r) => r.lPer100km != null && r.lPer100km > 0);
+    if (eco.length === 0) return null;
+    return eco.reduce((s, r) => s + r.lPer100km!, 0) / eco.length;
+  }, [fuel]);
+
+  /** Theoretical full-tank range. Null when we don't know tank size or economy. */
+  const estimatedRangeKm = useMemo(() => {
+    if (!vehicle?.tankSizeLitres || !avgLPer100km) return null;
+    return Math.round((vehicle.tankSizeLitres * 100) / avgLPer100km);
+  }, [vehicle?.tankSizeLitres, avgLPer100km]);
 
   const nextDueReminder = useMemo(() => reminders[0] ?? null, [reminders]);
   const hasExpiringDoc = useMemo(
@@ -221,6 +234,22 @@ export default function Dashboard() {
                 {streak.longest > streak.current && (
                   <span className="text-ios-gray dark:text-gray-500 font-normal ml-1">
                     · best {streak.longest}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+          {vehicle.tankSizeLitres && (
+            <div className="flex items-center justify-between w-full">
+              <span className="flex items-center gap-1.5 text-xs text-ios-gray dark:text-gray-400">
+                <Fuel size={12} className="text-ios-green" />
+                Tank
+              </span>
+              <span className="text-xs font-semibold text-black dark:text-white">
+                {vehicle.tankSizeLitres} L
+                {estimatedRangeKm != null && (
+                  <span className="text-ios-gray dark:text-gray-500 font-normal ml-1">
+                    · ~{formatOdometer(estimatedRangeKm)} range
                   </span>
                 )}
               </span>

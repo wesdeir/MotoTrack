@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const {
     form, errors: formErrors, setField, setErrors: setFormErrors,
     validate: runValidation, reset: resetForm, decoding, handleDecodeVin,
+    lookingUpTank, handleLookupTankSize,
   } = useVehicleForm();
 
   // null = fleet list; 'new' = add form; string id = edit form
@@ -274,6 +275,8 @@ export default function SettingsPage() {
                   setField={setField}
                   decoding={decoding}
                   onDecodeVin={onDecodeVin}
+                  lookingUpTank={lookingUpTank}
+                  onLookupTankSize={handleLookupTankSize}
                 />
 
                 <div className="flex gap-3 pt-1">
