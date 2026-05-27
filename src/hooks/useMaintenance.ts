@@ -15,6 +15,20 @@ export function useMaintenance(vehicleId: string | undefined) {
     [vehicleId],
   );
 
+  // Silently bump the vehicle's odometer when a maintenance reading is higher
+  // than what's stored. Mirrors useFuel.syncOdometer — keeps the vehicle's
+  // currentOdometer in sync without requiring a separate edit.
+  async function syncOdometer(odometer: number) {
+    if (!vehicleId) return;
+    const vehicle = await db.vehicles.get(vehicleId);
+    if (vehicle && odometer > vehicle.currentOdometer) {
+      await db.vehicles.update(vehicleId, {
+        currentOdometer: odometer,
+        updatedAt: new Date(),
+      });
+    }
+  }
+
   const addRecord = async (
     data: Omit<MaintenanceRecord, 'id' | 'createdAt' | 'updatedAt'>,
   ) => {
@@ -25,6 +39,7 @@ export function useMaintenance(vehicleId: string | undefined) {
       createdAt: now,
       updatedAt: now,
     });
+    await syncOdometer(data.odometer);
   };
 
   const updateRecord = async (
@@ -32,6 +47,7 @@ export function useMaintenance(vehicleId: string | undefined) {
     data: Partial<Omit<MaintenanceRecord, 'id' | 'createdAt'>>,
   ) => {
     await db.maintenanceRecords.update(id, { ...data, updatedAt: new Date() });
+    if (data.odometer != null) await syncOdometer(data.odometer);
   };
 
   const deleteRecord = async (id: string) => {

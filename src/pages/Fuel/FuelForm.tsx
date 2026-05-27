@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { AlertTriangle, Gauge } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { FormField, Input, Select, Textarea } from '../../components/ui/FormField';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import ScanReceiptButton from '../../components/ui/ScanReceiptButton';
 import { FUEL_GRADES, type FuelRecord, type FuelGrade } from '../../models';
-import { formatInputDate, parseFormDate } from '../../utils/formatters';
+import { formatInputDate, formatLPer100km, parseFormDate } from '../../utils/formatters';
 import type { ParsedReceipt } from '../../utils/ocr';
 
 interface Props {
@@ -13,6 +14,9 @@ interface Props {
   record: FuelRecord | null;
   vehicleId: string;
   currentOdometer: number;
+  /** All fuel records for this vehicle — used for live economy preview + warnings.
+   *  Optional for backwards compatibility, but strongly recommended. */
+  allRecords?: FuelRecord[];
   onSave: (
     data: Omit<FuelRecord, 'id' | 'createdAt' | 'updatedAt' | 'kmTravelled' | 'lPer100km' | 'kmPerL' | 'costPerKm'>,
   ) => Promise<void>;
@@ -46,7 +50,7 @@ function emptyForm(vehicleId: string, odo: number): FormState {
   };
 }
 
-export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, onSave, onDelete, onClose }: Props) {
+export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, allRecords, onSave, onDelete, onClose }: Props) {
   const [form, setForm] = useState<FormState>(() => emptyForm(vehicleId, currentOdometer));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -129,6 +133,68 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
     return Object.keys(errs).length === 0;
   };
 
+  /**
+   * Previous full-tank fill (excluding the record currently being edited) used
+   * to anchor the live economy preview. We need its odometer, plus the total
+   * litres pumped in any partial fills between then and now — same math as
+   * `enrichFuelRecords`'s full-tank-anchored algorithm.
+   */
+  const economyContext = useMemo(() => {
+    if (!allRecords || allRecords.length === 0) return null;
+    const odoNum = Number(form.odometer);
+    if (!Number.isFinite(odoNum) || odoNum <= 0) return null;
+    const editingId = record?.id ?? null;
+
+    const candidates = allRecords
+      .filter((r) => r.id !== editingId && r.odometer < odoNum)
+      .sort((a, b) => a.odometer - b.odometer);
+    if (candidates.length === 0) return null;
+
+    // Walk back to the most recent full-tank fill, summing litres of partials
+    // that came after it (but before the current entry).
+    let prevFullIdx = -1;
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      if (candidates[i].fullTank) { prevFullIdx = i; break; }
+    }
+    if (prevFullIdx < 0) return null;
+
+    const prevFull = candidates[prevFullIdx];
+    const litresBetween = candidates
+      .slice(prevFullIdx + 1)
+      .reduce((s, r) => s + r.litres, 0);
+
+    return { prevFullOdometer: prevFull.odometer, litresBetween };
+  }, [allRecords, form.odometer, record?.id]);
+
+  /** Live L/100km preview for a full-tank entry. Null when we can't compute. */
+  const previewLPer100km = useMemo(() => {
+    if (!form.fullTank) return null;
+    if (!economyContext) return null;
+    const odoNum = Number(form.odometer);
+    const litresNum = Number(form.litres);
+    if (!odoNum || !litresNum) return null;
+    const km = odoNum - economyContext.prevFullOdometer;
+    const totalLitres = economyContext.litresBetween + litresNum;
+    if (km <= 0 || totalLitres <= 0) return null;
+    return (totalLitres / km) * 100;
+  }, [form.fullTank, form.odometer, form.litres, economyContext]);
+
+  /** Warn (don't block) when odometer goes backward vs. vehicle or prior fill. */
+  const odometerWarning = useMemo<string | null>(() => {
+    const odoNum = Number(form.odometer);
+    if (!odoNum || odoNum <= 0) return null;
+    const editingId = record?.id ?? null;
+    const priors = (allRecords ?? []).filter((r) => r.id !== editingId);
+    const highestPriorOdo = priors.reduce((max, r) => Math.max(max, r.odometer), 0);
+    if (highestPriorOdo > 0 && odoNum < highestPriorOdo) {
+      return `Lower than your previous fill-up (${highestPriorOdo.toLocaleString()} km). Double-check for a typo.`;
+    }
+    if (currentOdometer > 0 && odoNum < currentOdometer) {
+      return `Lower than your vehicle's saved odometer (${currentOdometer.toLocaleString()} km).`;
+    }
+    return null;
+  }, [form.odometer, allRecords, currentOdometer, record?.id]);
+
   const handleSubmit = async () => {
     if (!validate()) return;
     setSaving(true);
@@ -171,6 +237,12 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
               placeholder="211000"
               min={0}
             />
+            {odometerWarning && (
+              <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-ios-orange leading-snug">
+                <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+                <span>{odometerWarning}</span>
+              </div>
+            )}
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
@@ -195,6 +267,20 @@ export default function FuelForm({ isOpen, record, vehicleId, currentOdometer, o
               />
             </FormField>
           </div>
+
+          {previewLPer100km != null && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-ios-blue/10 dark:bg-ios-blue/[0.12]">
+              <Gauge size={16} className="text-ios-blue flex-shrink-0" />
+              <div className="text-xs leading-snug">
+                <span className="font-semibold text-black dark:text-white">
+                  {formatLPer100km(previewLPer100km)}
+                </span>
+                <span className="text-ios-gray dark:text-gray-400">
+                  {' '}for this fill, anchored to your last full tank.
+                </span>
+              </div>
+            </div>
+          )}
 
           <FormField label="Price / Litre" hint="Auto-calculated from litres + total">
             <Input

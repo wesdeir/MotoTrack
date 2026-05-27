@@ -123,6 +123,7 @@ export default function FuelPage() {
         record={selected}
         vehicleId={vehicle?.id ?? ''}
         currentOdometer={vehicle?.currentOdometer ?? 0}
+        allRecords={records}
         onSave={handleSave}
         onDelete={handleDelete}
         onClose={() => setFormOpen(false)}

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current version: 1.3.0** (must match `package.json` `version` field)
+**Current version: 1.4.0** (must match `package.json` `version` field)
 
 > **Keeping this file current:** After any session that changes architecture, adds/removes files or dependencies, introduces new patterns, or bumps the version — update this file to match. Check that the version number above matches `package.json`, that the file organization tree still reflects reality, and that any new conventions or gotchas are documented. This is the single source of truth for onboarding a new Claude Code session.
 
@@ -130,6 +130,16 @@ Smart interval suggestions after maintenance saves are handled by `ReminderSugge
 ### Fuel Economy
 
 Economy is computed by `enrichFuelRecords()` in `useFuel` hook — `lPer100km`, `kmPerL`, `costPerKm` are derived fields, not stored in DB. Anomaly detection (`detectEconomyAnomalies` in `fuelCalc.ts`) flags fill-ups 15%+ worse than trailing 5-fill average.
+
+**Sort order:** records are sorted by **odometer** (with date as tiebreaker), not date. Odometer is the monotonic ground truth — date-only sort breaks economy calcs when a user backdates an entry or logs multiple fills in one day. Don't revert this.
+
+**Full-tank-anchored method:** L/100km only computed between two full-tank fills. Partial fills in between still get `kmTravelled` (so the user can see distance per fill) but contribute their litres to the next full-tank's calculation. This is the standard accurate method.
+
+**Odometer auto-sync:** `useFuel.syncOdometer` and `useMaintenance.syncOdometer` bump `vehicle.currentOdometer` whenever a fuel or maintenance entry has a higher reading. Means the user only enters odometer in one place (the form) and the vehicle stays in sync — no manual vehicle edit needed.
+
+**Live preview in FuelForm:** when adding a full-tank fill, computes the resulting L/100km against the previous full-tank-anchored window as the user types odometer + litres. Lets users sanity-check before saving.
+
+**Odometer monotonicity warnings:** both FuelForm and MaintenanceForm show a non-blocking warning when the entered odometer is lower than the vehicle's saved value (and, for FuelForm, lower than the previous fuel record). Lets users save anyway for legitimate back-fills.
 
 ### Receipt/Document Images
 

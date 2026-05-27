@@ -3,13 +3,19 @@ import type { FuelRecord } from '../models';
 /** Fill-ups ≥ this multiple of the trailing-5 average are flagged as anomalous. */
 const ECONOMY_ANOMALY_THRESHOLD = 1.15;
 
-/** Add computed km/economy fields to a list of raw fuel records. */
+/** Add computed km/economy fields to a list of raw fuel records.
+ *
+ *  Sorted by odometer (with date as secondary tiebreaker) — odometer is the
+ *  monotonic ground truth on the vehicle. Date-only sort breaks economy
+ *  calculations when users backdate an entry or log multiple fills in a single
+ *  day (e.g., long road trip). */
 export function enrichFuelRecords(records: FuelRecord[]): FuelRecord[] {
   if (records.length === 0) return [];
 
-  const sorted = [...records].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
+  const sorted = [...records].sort((a, b) => {
+    if (a.odometer !== b.odometer) return a.odometer - b.odometer;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
 
   const enriched: FuelRecord[] = [];
 

@@ -402,6 +402,7 @@ export default function Dashboard() {
         record={null}
         vehicleId={vehicle.id}
         currentOdometer={vehicle.currentOdometer}
+        allRecords={fuel}
         onSave={async (data) => { await addFuelRecord(data); setFuelFormOpen(false); }}
         onDelete={async () => { setFuelFormOpen(false); }}
         onClose={() => setFuelFormOpen(false)}

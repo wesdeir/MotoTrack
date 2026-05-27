@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Trash2, Plus, AlertTriangle } from 'lucide-react';
 import { formatInputDate, parseFormDate } from '../../utils/formatters';
 import type { ParsedReceipt } from '../../utils/ocr';
 import Modal from '../../components/ui/Modal';
@@ -204,6 +204,17 @@ export default function MaintenanceForm({
     return Object.keys(errs).length === 0;
   };
 
+  /** Soft warning when odometer is lower than the vehicle's saved value.
+   *  Doesn't block — user might be back-filling an old service record. */
+  const odometerWarning = useMemo<string | null>(() => {
+    const odoNum = Number(form.odometer);
+    if (!odoNum || odoNum <= 0) return null;
+    if (currentOdometer > 0 && odoNum < currentOdometer) {
+      return `Lower than your vehicle's saved odometer (${currentOdometer.toLocaleString()} km). Double-check or save anyway if back-filling.`;
+    }
+    return null;
+  }, [form.odometer, currentOdometer]);
+
   /** Auto-fill empty fields from OCR'd receipt. Never overwrites user input. */
   const applyParsedReceipt = (parsed: ParsedReceipt) => {
     setForm((prev) => {
@@ -318,6 +329,12 @@ export default function MaintenanceForm({
               placeholder="211000"
               min={0}
             />
+            {odometerWarning && (
+              <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-ios-orange leading-snug">
+                <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+                <span>{odometerWarning}</span>
+              </div>
+            )}
           </FormField>
 
           <FormField label="Shop / Vendor">
